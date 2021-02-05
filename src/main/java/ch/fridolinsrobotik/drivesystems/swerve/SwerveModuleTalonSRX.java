@@ -23,10 +23,12 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     WPI_TalonSRX drivingMotor;
     WPI_TalonSRX steeringMotor;
 
-    public SwerveModuleTalonSRX(Translation2d mountingPosition, WPI_TalonSRX steeringMotor, int steeringPulsesPerRotation, WPI_TalonSRX drivingMotor, int drivingPulsesPerRotation) {
+    public SwerveModuleTalonSRX(Translation2d mountingPosition, WPI_TalonSRX steeringMotor,
+            int steeringPulsesPerRotation, WPI_TalonSRX drivingMotor, int drivingPulsesPerRotation) {
         super(mountingPosition, steeringPulsesPerRotation, drivingPulsesPerRotation);
         verify(drivingMotor, steeringMotor);
-        this.drivingMotor = drivingMotor; this.steeringMotor = steeringMotor;
+        this.drivingMotor = drivingMotor;
+        this.steeringMotor = steeringMotor;
         instances++;
         SendableRegistry.setName(this, "SwerveModuleTalonSRX", instances);
     }
@@ -56,8 +58,10 @@ public class SwerveModuleTalonSRX extends SwerveModule {
 
     @Override
     public void executeSwerveMovement() {
+        double driveSpeed = getDriveSpeedPercentage();
+        limitRotationOutput(driveSpeed);
         steeringMotor.set(ControlMode.Position, getSteeringPosition());
-        drivingMotor.set(ControlMode.PercentOutput, getDriveSpeedPercentage());
+        drivingMotor.set(ControlMode.PercentOutput, driveSpeed);
     }
 
     @Override
@@ -100,5 +104,5 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     protected void limitRotationOutput(double velocity) {
         steeringMotor.configPeakOutputForward(getLimitedRoationOutput(velocity));
         steeringMotor.configPeakOutputReverse(-getLimitedRoationOutput(velocity));
-    }    
+    }
 }
