@@ -98,4 +98,9 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     public double getDriveEncoderPulses() {
         return drivingMotor.getEncoderTicks();
     }
+    
+    @Override
+    protected void limitRotationOutput(double velocity) {
+        steeringMotor.limitOutput(getLimitedRoationOutput(velocity));
+    }
 }

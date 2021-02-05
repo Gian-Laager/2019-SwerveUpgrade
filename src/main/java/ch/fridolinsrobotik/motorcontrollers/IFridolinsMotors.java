@@ -51,4 +51,6 @@ public interface IFridolinsMotors {
     public double getClosedLoopError();
 
     public ErrorCode setSelectedSensorPosition(int sensorPosition);
+
+    public ErrorCode limitOutput(double out);
 }

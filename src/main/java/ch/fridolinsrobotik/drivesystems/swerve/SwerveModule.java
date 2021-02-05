@@ -140,6 +140,17 @@ public abstract class SwerveModule implements Sendable {
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
         setDriveSpeedPercentage(driveDirection * driveInverted);
     }
+    
+    private static double modifiedGauseFunction(double x) {
+        //TODO: modify gause curve
+        return Math.exp(-(x * x));
+    }
+
+    public static double getLimitedRoationOutput(double velocity) {
+        return modifiedGauseFunction(velocity);
+    }
+
+    protected abstract void limitRotationOutput(double velocity); 
 
     /**
      * Feeds the calculated swerve movement values into the motor controllers.

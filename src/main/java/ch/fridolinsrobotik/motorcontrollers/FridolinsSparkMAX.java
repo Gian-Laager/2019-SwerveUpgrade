@@ -141,4 +141,8 @@ public class FridolinsSparkMAX extends CANSparkMax implements IFridolinsMotors {
         throw new Error("NotImplemented");    
     }
 
+    @Override
+    public ErrorCode limitOutput(double out) {
+        throw new Error("NotImplemented");
+    }
 }

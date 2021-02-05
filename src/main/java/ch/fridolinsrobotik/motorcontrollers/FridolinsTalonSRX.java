@@ -46,12 +46,12 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 	private LimitSwitchNormal convertFridolinLimitSwitchPolarityToSparkMaxPolarity(
 			FridolinsLimitSwitchPolarity polarity) {
 		switch (polarity) {
-		case kNormallyOpen:
-			return LimitSwitchNormal.NormallyOpen;
-		case kNormallyClosed:
-			return LimitSwitchNormal.NormallyClosed;
-		default:
-			return LimitSwitchNormal.Disabled;
+			case kNormallyOpen:
+				return LimitSwitchNormal.NormallyOpen;
+			case kNormallyClosed:
+				return LimitSwitchNormal.NormallyClosed;
+			default:
+				return LimitSwitchNormal.Disabled;
 		}
 	}
 
@@ -75,10 +75,10 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 
 	private NeutralMode convertFridolinIdleModeType(FridolinsIdleModeType type) {
 		switch (type) {
-		case kBrake:
-			return NeutralMode.Brake;
-		default:
-			return NeutralMode.Coast;
+			case kBrake:
+				return NeutralMode.Brake;
+			default:
+				return NeutralMode.Coast;
 		}
 	}
 
@@ -111,10 +111,10 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 
 	private InvertType convertFridolinDirectionType(FridolinsDirectionType type) {
 		switch (type) {
-		case followMaster:
-			return InvertType.FollowMaster;
-		default:
-			return InvertType.OpposeMaster;
+			case followMaster:
+				return InvertType.FollowMaster;
+			default:
+				return InvertType.OpposeMaster;
 		}
 	}
 
@@ -146,8 +146,8 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 
 	private FeedbackDevice convertFridolinFeedbackDevice(FridolinsFeedbackDevice device) {
 		switch (device) {
-		default:
-			return FeedbackDevice.QuadEncoder;
+			default:
+				return FeedbackDevice.QuadEncoder;
 		}
 	}
 
@@ -171,4 +171,15 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 		return super.setSelectedSensorPosition(sensorPosition);
 	}
 
+	@Override
+	public ErrorCode limitOutput(double out) {
+		ErrorCode errorFrowardLimit = super.configPeakOutputForward(out);
+		if (!errorFrowardLimit.equals(ErrorCode.OK))
+			return errorFrowardLimit;
+		ErrorCode errorReverseLimit = super.configPeakOutputReverse(-out);
+
+		if (!errorReverseLimit.equals(ErrorCode.OK))
+			return errorReverseLimit;
+		return ErrorCode.OK;
+	}
 }

@@ -96,4 +96,9 @@ public class SwerveModuleTalonSRX extends SwerveModule {
         drivingMotor.setSelectedSensorPosition(0);
     }
 
+    @Override
+    protected void limitRotationOutput(double velocity) {
+        steeringMotor.configPeakOutputForward(getLimitedRoationOutput(velocity));
+        steeringMotor.configPeakOutputReverse(-getLimitedRoationOutput(velocity));
+    }    
 }
