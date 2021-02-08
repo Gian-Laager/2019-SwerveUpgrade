@@ -12,7 +12,9 @@ import java.util.StringJoiner;
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
 import edu.wpi.first.wpilibj.drive.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
+import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
+import frc.robot.RobotMap;
 
 /**
  * Add your docs here.
@@ -28,10 +30,10 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         verify(drivingMotor, steeringMotor);
         this.drivingMotor = drivingMotor;
         this.steeringMotor = steeringMotor;
+        SendableRegistry.setName(this, "SwerveModuleFridolinsMotor", instances);
         SendableRegistry.addChild(this, drivingMotor);
         SendableRegistry.addChild(this, steeringMotor);
         instances++;
-        SendableRegistry.setName(this, "SwerveModuleFridolinsMotor", instances);
     }
 
     /**
@@ -57,10 +59,17 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         throw new NullPointerException(joiner.toString());
     }
 
+    double maxVel = 0.0;
     @Override
     public void executeSwerveMovement() {
+        double driveSpeed = getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput;
+//         limitRotationOutput(driveSpeed);
+        System.out.println("Velocity: " + driveSpeed);
         steeringMotor.setPosition(getSteeringPosition());
-        drivingMotor.setPercent(getDriveSpeedPercentage());
+        drivingMotor.setVelocity(driveSpeed);
+        int mSpeed = drivingMotor.getEncoderVelocity();
+        if (mSpeed > maxVel)
+            maxVel = mSpeed;
     }
 
     @Override
@@ -102,5 +111,14 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     @Override
     protected void limitRotationOutput(double velocity) {
         steeringMotor.limitOutput(getLimitedRoationOutput(velocity));
+    }
+
+    @Override
+    public void initSendable(SendableBuilder builder) {
+        super.initSendable(builder);
+        builder.addDoubleProperty("Drive Ticks", () -> this.drivingMotor.getEncoderTicks(), null);
+        builder.addDoubleProperty("Drive Speed", () -> this.drivingMotor.getEncoderVelocity(), null); 
+        builder.addDoubleProperty("Drive Speed Goal", () -> this.getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput, null);
+        builder.addDoubleProperty("Drive max speed", () -> this.maxVel, null);
     }
 }

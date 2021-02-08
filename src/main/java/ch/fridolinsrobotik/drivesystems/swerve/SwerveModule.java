@@ -13,6 +13,8 @@ import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
+import frc.robot.Robot;
+import frc.robot.RobotMap;
 
 /**
  * A class for representing a Swerve module.
@@ -39,12 +41,13 @@ public abstract class SwerveModule implements Sendable {
     protected int drivingPulsesPerRotation = 1;
     protected Translation2d mountingPoint = new Translation2d(0, 0);
     protected Translation2d naturalRotateVector = new Translation2d(0, 0);
-    protected double driveSpeedPercentage = 0;
+    protected double driveSpeed = 0;
     protected double driveInverted = 1.0;
     protected int steeringPosition = 0;
 
     public SwerveModule(Translation2d mountingPoint, int steeringPulsesPerRotation, int drivingPulsesPerRotation) {
-        SendableRegistry.setName(this, "SwerveModule");
+        SendableRegistry.addLW(this, "SwerveModule");
+        // SendableRegistry.setName(this, "SwerveModule");
         verify(mountingPoint, steeringPulsesPerRotation, drivingPulsesPerRotation);
         this.mountingPoint = mountingPoint;
         this.steeringPulsesPerRotation = steeringPulsesPerRotation;
@@ -138,12 +141,14 @@ public abstract class SwerveModule implements Sendable {
         
         setSteeringPosition((int)getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
-        setDriveSpeedPercentage(driveDirection * driveInverted);
+        double speedMpS = driveDirection * driveInverted * speedMeterPerSecond;
+        setDriveSpeedVelocity(driveMetersPerSecond_to_EncoderTicksPerSecond(speedMpS));
     }
     
     private static double modifiedGauseFunction(double x) {
-        //TODO: modify gause curve
-        return Math.exp(-(x * x));
+        double a = 0.597837 / (Robot.swerve.m_speedFactor * Robot.swerve.m_speedFactor); // factor to streche curve in x direction
+        double b = -0.3; // y offset of the curve
+        return Math.exp(-(x * x) * a) + b;
     }
 
     public static double getLimitedRoationOutput(double velocity) {
@@ -201,8 +206,8 @@ public abstract class SwerveModule implements Sendable {
      * 
      * @param driveSpeedPercentage Motor speed in percentage [-1..1].
      */
-    protected void setDriveSpeedPercentage(double driveSpeedPercentage) {
-        this.driveSpeedPercentage = driveSpeedPercentage;
+    protected void setDriveSpeedVelocity(double driveSpeedPercentage) {
+        this.driveSpeed = driveSpeedPercentage;
     }
 
     /**
@@ -262,12 +267,10 @@ public abstract class SwerveModule implements Sendable {
     }
 
     /**
-     * Returns the calculated driving speed in percentage
-     * 
-     * @return Driving speed in percentage.
+     * @return Driving speed in meters per second.
      */
-    public double getDriveSpeedPercentage() {
-        return this.driveSpeedPercentage;
+    public double getDriveSpeedVelocity() {
+        return this.driveSpeed;
     }
 
     /**
@@ -302,10 +305,15 @@ public abstract class SwerveModule implements Sendable {
         return (int) (pulsesPerRotation / (2 * Math.PI) * radians);
     }
 
+    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+        return (velocity / drivingPulsesPerRotation) * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT; 
+    }
+
     /*************************** Sendable part begin *****************************/
 
     @Override
     public void initSendable(SendableBuilder builder) {
+        System.out.println("SwerveModule InitSendable called");
         builder.setSmartDashboardType("SwerveModule");
         builder.setSafeState(this::stopMotors);
         builder.addDoubleProperty("Steering Angle", () -> Math.toDegrees(this.getSteeringAngle()), null);
@@ -313,7 +321,7 @@ public abstract class SwerveModule implements Sendable {
                 () -> Math.toDegrees(
                         this.convertEncoderPulsesToRadians(this.getSteeringPosition(), this.steeringPulsesPerRotation)),
                 null);
-        builder.addDoubleProperty("Drive Speed", this::getDriveSpeedPercentage, null);
+        builder.addDoubleProperty("Drive Speed Goal", this::getDriveSpeedVelocity, null);
         builder.addBooleanProperty("Homing Sensor", this::homingSensorActive, null);
     }
 

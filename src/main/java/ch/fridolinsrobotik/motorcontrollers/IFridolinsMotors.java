@@ -48,9 +48,11 @@ public interface IFridolinsMotors {
 
     public void configOpenLoopRamp(double rampTime, int timeoutMs);
 
-    public double getClosedLoopError();
+    public int getClosedLoopError();
 
     public ErrorCode setSelectedSensorPosition(int sensorPosition);
 
     public ErrorCode limitOutput(double out);
+
+    public int getEncoderVelocity();
 }

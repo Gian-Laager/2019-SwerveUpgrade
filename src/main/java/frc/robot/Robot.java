@@ -162,10 +162,10 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     double joystickX = OI.JoystickMainDriver.getX();
-    double joystickY = -OI.JoystickMainDriver.getY();
+    double joystickY = OI.JoystickMainDriver.getY();
     double joystickZ = OI.JoystickMainDriver.getZ();
     
-    swerveDrive.manualDrive(joystickX, joystickY, -joystickZ, ahrs.getYaw());
+    swerveDrive.manualDrive(joystickX, joystickY, joystickZ, ahrs.getYaw());
   }
 
   @Override
@@ -185,7 +185,7 @@ public class Robot extends TimedRobot {
     // double t1 = Timer.getFPGATimestamp();
     // DriverStation.reportWarning(Double.valueOf(Timer.getFPGATimestamp() - t1).toString(), false);
     double joystickX = OI.JoystickMainDriver.getX();
-    double joystickY = -OI.JoystickMainDriver.getY();
+    double joystickY = OI.JoystickMainDriver.getY();
     double joystickZ = OI.JoystickMainDriver.getZ();
 
     double joystickYsupport = Deadzone.getAxis(-OI.JoystickSupportDriver.getY(Hand.kLeft), RobotMap.DEADZONE_RANGE);
@@ -203,7 +203,7 @@ public class Robot extends TimedRobot {
       //     swerveDrive.manualDrive(joystickX, joystickY, 0, 0);
       //   }
       // }
-      swerveDrive.manualDrive(joystickX, joystickY, -joystickZ, ahrs.getYaw());
+      swerveDrive.manualDrive(joystickX, joystickY, joystickZ, ahrs.getYaw());
     }
 
     if (RobotMap.ROBOT_ELEVATOR_SUBSYSTEM_IN_USE && RobotMap.LIFTING_UNIT_SUBSYSTEM_IS_IN_USE) {    
@@ -226,11 +226,7 @@ public class Robot extends TimedRobot {
         elevator.moveElevators(joystickZrotateSupport, joystickYsupport);
       } else {
 
-      }
-
-      System.out.print(" Lifting Break: " + elevator.calculateBreak());
-      System.out.println(" Lifting Unit Position: " + liftingUnit.getPosition());
-    
+      }    
     }
 
     if (RobotMap.LIFTING_UNIT_SUBSYSTEM_IS_IN_USE) {

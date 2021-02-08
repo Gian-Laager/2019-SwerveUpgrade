@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.wpilibj.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
+import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 import edu.wpi.first.wpiutil.math.MathUtil;
 
 /**
@@ -44,7 +45,7 @@ public class SwerveDrive extends MotorSafety implements Sendable {
     SwerveDriveKinematics kinematics;
     SwerveModule[] swerveModules;
 
-    public static final double kDefaultDeadband = 0.02;
+    public static final double kDefaultDeadband = 0.04;
     public static final double kDefaultSpeedFactor = 1.0;
 
     protected double m_deadband = kDefaultDeadband;
@@ -54,21 +55,27 @@ public class SwerveDrive extends MotorSafety implements Sendable {
 
     public SwerveDrive() {
         // m_sendableImpl = new SendableImpl(true);
+        super();
+        String name = getClass().getName();
+        name = name.substring(name.lastIndexOf('.') + 1);
         instances++;
         setSafetyEnabled(true);
-        // setName("SwerveDrive", instances);
+        SendableRegistry.addLW(this, name, name);
+        SendableRegistry.setName(this, "SwerveDrive", instances);
+        SendableRegistry.enableLiveWindow(this);
     }
 
     public void addSwerveModules(SwerveModule... modules) {
         this.swerveModules = modules.clone();
-        Translation2d[] mountingPoints = Arrays.stream(modules)
-                .map(SwerveModule::getMountingPoint)
+        Translation2d[] mountingPoints = Arrays.stream(modules).map(SwerveModule::getMountingPoint)
                 .toArray(Translation2d[]::new);
         kinematics = new SwerveDriveKinematics(mountingPoints);
+        // for (SwerveModule module : this.swerveModules)
+        // SendableRegistry.addChild(this, module);
     }
 
     // public ArrayList<SwerveModule> getSwerveModules() {
-    //     return this.swerveModules;
+    // return this.swerveModules;
     // }
 
     public double getDeadband() {
@@ -122,12 +129,9 @@ public class SwerveDrive extends MotorSafety implements Sendable {
      *                  the Z axis. Use this to implement field-oriented controls.
      */
     public void driveCartesian(double ySpeed, double xSpeed, double zRotation, double gyroAngle) {
-
         ySpeed = MathUtil.clamp(ySpeed, -1, 1);
         xSpeed = MathUtil.clamp(xSpeed, -1, 1);
         zRotation = MathUtil.clamp(zRotation, -1, 1);
-
-        
 
         /*
          * apply deadband to rotation to prevent jittering of the steering.
@@ -139,6 +143,8 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         } else {
             zRotation = Algorithms.scale(zRotation, -1, m_deadband, -1, 0);
         }
+        // System.out.println(String.format("SwerveDrive: y speed: %f, x speed: %f,
+        // zRotation: %f", ySpeed, xSpeed, zRotation));
 
         Translation2d striveVector = new Translation2d(xSpeed, ySpeed);
         striveVector.rotateBy(Rotation2d.fromDegrees(-gyroAngle));
@@ -149,16 +155,23 @@ public class SwerveDrive extends MotorSafety implements Sendable {
          */
         if (striveVector.getNorm() >= m_deadband) {
             striveVector = Algorithms.scale(striveVector, m_deadband, 1, 0, 1);
+        } else {
+            striveVector = new Translation2d(0.0, 0.0);
         }
-
-        ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, Math.PI*2*zRotation, Rotation2d.fromDegrees(-gyroAngle));
+        ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(striveVector.getX(), -striveVector.getY(),
+                Math.PI * zRotation, Rotation2d.fromDegrees(0/*-gyroAngle*/));
         SwerveModuleState[] moduleStates = kinematics.toSwerveModuleStates(speeds);
-
-        for(int i = 0; i < moduleStates.length; ++i) {
+        for (int i = 0; i < moduleStates.length; ++i) {
             SwerveModule module = this.swerveModules[i];
             SwerveModuleState moduleState = moduleStates[i];
-            module.calculateSwerveMovement(moduleState.speedMetersPerSecond, moduleState.angle);
-            module.setDriveSpeedPercentage(module.getDriveSpeedPercentage() * this.m_speedFactor);
+            // System.out.println("I: "+ i + " " + moduleState.toString() + " Strive vector:
+            // " + striveVector.toString());
+
+            if (Math.abs(zRotation) > 0 || Math.hypot(striveVector.getX(), striveVector.getY()) > 0) {
+                module.calculateSwerveMovement(moduleState.speedMetersPerSecond, moduleState.angle);
+                module.setDriveSpeedVelocity(module.getDriveSpeedVelocity() /* * this.m_speedFactor */);
+            } else
+                module.setDriveSpeedVelocity(0.0);
         }
 
         normalize();
@@ -192,18 +205,20 @@ public class SwerveDrive extends MotorSafety implements Sendable {
     /**
      * Normalize all wheel speeds if the magnitude of any wheel is greater than 1.0.
      */
+    protected static final double maxSpeed45PercentOutput = 14132.0;
+
     protected void normalize() {
         double maxMagnitude = 0;
         for (int i = 0; i < this.swerveModules.length; i++) {
-            double temp = Math.abs(this.swerveModules[i].getDriveSpeedPercentage());
+            double temp = Math.abs(this.swerveModules[i].getDriveSpeedVelocity());
             if (maxMagnitude < temp) {
                 maxMagnitude = temp;
             }
         }
-        if (maxMagnitude > 1.0) {
+        if (maxMagnitude > maxSpeed45PercentOutput) {
             for (int i = 0; i < this.swerveModules.length; i++) {
                 SwerveModule module = this.swerveModules[i];
-                module.setDriveSpeedPercentage(module.getDriveSpeedPercentage() / maxMagnitude);
+                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * maxSpeed45PercentOutput);
             }
         }
     }
@@ -288,9 +303,9 @@ public class SwerveDrive extends MotorSafety implements Sendable {
 
     @Override
     public void initSendable(SendableBuilder builder) {
-    builder.setSmartDashboardType("SwerveDrive");
-    builder.setActuator(true);
-    builder.setSafeState(this::stopMotor);
+        builder.setSmartDashboardType("SwerveDriveKinematic");
+        builder.setSafeState(this::stopMotor);
+        builder.addBooleanProperty("Test", () -> true, null);
     }
 
     /*************************** Sendable part ends *****************************/

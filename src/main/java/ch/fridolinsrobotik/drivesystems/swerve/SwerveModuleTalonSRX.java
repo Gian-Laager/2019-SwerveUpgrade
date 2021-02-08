@@ -58,7 +58,7 @@ public class SwerveModuleTalonSRX extends SwerveModule {
 
     @Override
     public void executeSwerveMovement() {
-        double driveSpeed = getDriveSpeedPercentage();
+        double driveSpeed = getDriveSpeedVelocity();
         limitRotationOutput(driveSpeed);
         steeringMotor.set(ControlMode.Position, getSteeringPosition());
         drivingMotor.set(ControlMode.PercentOutput, driveSpeed);
@@ -104,5 +104,10 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     protected void limitRotationOutput(double velocity) {
         steeringMotor.configPeakOutputForward(getLimitedRoationOutput(velocity));
         steeringMotor.configPeakOutputReverse(-getLimitedRoationOutput(velocity));
+    }
+
+    @Override
+    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+        throw new Error("Not implemented");
     }
 }

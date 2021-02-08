@@ -91,6 +91,7 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 
 	@Override
 	public int getEncoderTicks() {
+		// System.out.println(getDeviceID() + "> Sensor: " + getSelectedSensorPosition());
 		return (int) getSelectedSensorPosition();
 	}
 
@@ -172,6 +173,11 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 	}
 
 	@Override
+	public int getClosedLoopError() {
+		return super.getClosedLoopError();
+	}
+
+	@Override
 	public ErrorCode limitOutput(double out) {
 		ErrorCode errorFrowardLimit = super.configPeakOutputForward(out);
 		if (!errorFrowardLimit.equals(ErrorCode.OK))
@@ -181,5 +187,10 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 		if (!errorReverseLimit.equals(ErrorCode.OK))
 			return errorReverseLimit;
 		return ErrorCode.OK;
+	}
+
+	@Override
+	public int getEncoderVelocity() {
+		return super.getSelectedSensorVelocity();
 	}
 }

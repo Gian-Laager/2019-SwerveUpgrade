@@ -24,12 +24,12 @@ public class RobotMap {
   public static final int LIFTING_UNIT_SAFETY_ZONE = 200;
 
   // Subsystems
-  public static final boolean CARGO_GRIPPER_SUBSYSTEM_IS_IN_USE     = true;
-  public static final boolean HATCH_GRIPPER_SUBSYSTEM_IS_IN_USE     = true;
-  public static final boolean LIFTING_UNIT_SUBSYSTEM_IS_IN_USE      = true;
-  public static final boolean CART_SUBSYSTEM_IS_IN_USE              = true;
+  public static final boolean CARGO_GRIPPER_SUBSYSTEM_IS_IN_USE     = false;
+  public static final boolean HATCH_GRIPPER_SUBSYSTEM_IS_IN_USE     = false;
+  public static final boolean LIFTING_UNIT_SUBSYSTEM_IS_IN_USE      = false;
+  public static final boolean CART_SUBSYSTEM_IS_IN_USE              = false;
   public static final boolean SWERVE_DRIVE_SUBSYSTEM_IS_IN_USE      = true;
-  public static final boolean ROBOT_ELEVATOR_SUBSYSTEM_IN_USE       = true;
+  public static final boolean ROBOT_ELEVATOR_SUBSYSTEM_IN_USE       = false;
 
   // Motors
   public static final int SWERVE_DRIVE_FRONT_LEFT_ID    = 32;
@@ -206,6 +206,8 @@ public class RobotMap {
       public static final double WHEEL_DISTANCE_LENGTH = 64;
       /** wheel to wheel distance in x axis (cm) */
       public static final double WHEEL_DISTANCE_WIDTH = 61;
+      /** wheel circumference of the wheel in m */
+      public static final double WHEEL_CIRCUMFERENCE = 0.1 * Math.PI;
 
   // Robot
 

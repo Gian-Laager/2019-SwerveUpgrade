@@ -132,7 +132,7 @@ public class FridolinsSparkMAX extends CANSparkMax implements IFridolinsMotors {
     }
 
     @Override
-    public double getClosedLoopError() {
+    public int getClosedLoopError() {
         throw new Error("NotImplemented");
     }
 
@@ -143,6 +143,11 @@ public class FridolinsSparkMAX extends CANSparkMax implements IFridolinsMotors {
 
     @Override
     public ErrorCode limitOutput(double out) {
+        throw new Error("NotImplemented");
+    }
+
+    @Override
+    public int getEncoderVelocity() {
         throw new Error("NotImplemented");
     }
 }

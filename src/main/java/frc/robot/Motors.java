@@ -317,6 +317,8 @@ public class Motors {
             for (FridolinsTalonSRX motor : talonSwerveDriveMotors) {
                 // Set Brake Mode
                 motor.setIdleMode(FridolinsIdleModeType.kBrake);
+                motor.config_kF(0, 0.075); // ca. 0.015
+                motor.config_kP(0, 0.01); // ca. 0.015
             }
 
             /* Spetial Configs */
@@ -347,19 +349,19 @@ public class Motors {
             swerveAngleBackLeft = talonSwerveAngleBackLeft;
 
             // create Swerve Drive Modules
-            SwerveModule frontLeft = new SwerveModuleFridolinsMotor(new Vector2d(32, -30.5),
+            SwerveModule frontLeft = new SwerveModuleFridolinsMotor(new Vector2d(0.32, -0.305),
                     Motors.swerveAngleFrontLeft, RobotMap.SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT,
                     Motors.swerveDriveFrontLeft, RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT);
 
-            SwerveModule frontRight = new SwerveModuleFridolinsMotor(new Vector2d(32, 30.5),
+            SwerveModule frontRight = new SwerveModuleFridolinsMotor(new Vector2d(0.32, 0.305),
                     Motors.swerveAngleFrontRight, RobotMap.SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT,
                     Motors.swerveDriveFrontRight, RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT);
-            frontRight.setInvertedDrive(true);
-            SwerveModule backLeft = new SwerveModuleFridolinsMotor(new Vector2d(-32, -30.5), Motors.swerveAngleBackLeft,
+            frontRight.setInvertedDrive(false);
+            SwerveModule backLeft = new SwerveModuleFridolinsMotor(new Vector2d(-0.32, -0.305), Motors.swerveAngleBackLeft,
                     RobotMap.SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT, Motors.swerveDriveBackLeft,
                     RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT);
 
-            SwerveModule backRight = new SwerveModuleFridolinsMotor(new Vector2d(-32, 30.5),
+            SwerveModule backRight = new SwerveModuleFridolinsMotor(new Vector2d(-0.32, 0.305),
                     Motors.swerveAngleBackRight, RobotMap.SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT,
                     Motors.swerveDriveBackRight, RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT);
             backRight.setInvertedDrive(true);
