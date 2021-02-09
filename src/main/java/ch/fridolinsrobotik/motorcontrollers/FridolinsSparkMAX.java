@@ -150,4 +150,9 @@ public class FridolinsSparkMAX extends CANSparkMax implements IFridolinsMotors {
     public int getEncoderVelocity() {
         throw new Error("NotImplemented");
     }
+
+    @Override
+    public void setEncoderDirection(boolean forward) {
+        throw new Error("Not implemented");
+    }
 }

@@ -13,6 +13,7 @@ import com.ctre.phoenix.ErrorCode;
  * Interface to merge the MotorController classes given by the manufacturers.
  */
 public interface IFridolinsMotors {
+    public void setEncoderDirection(boolean forward);
 
     public void setVelocity(double velocity);
 

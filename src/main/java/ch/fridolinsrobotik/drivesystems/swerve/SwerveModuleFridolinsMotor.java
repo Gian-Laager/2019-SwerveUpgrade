@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.drive.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
+import frc.robot.Robot;
 import frc.robot.RobotMap;
 
 /**
@@ -62,11 +63,9 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     double maxVel = 0.0;
     @Override
     public void executeSwerveMovement() {
-        double driveSpeed = getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput;
-//         limitRotationOutput(driveSpeed);
-        System.out.println("Velocity: " + driveSpeed);
+//         limitRotationOutput(wheelVector);
         steeringMotor.setPosition(getSteeringPosition());
-        drivingMotor.setVelocity(driveSpeed);
+        drivingMotor.setVelocity(getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput);
         int mSpeed = drivingMotor.getEncoderVelocity();
         if (mSpeed > maxVel)
             maxVel = mSpeed;
@@ -107,10 +106,19 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     public double getDriveEncoderPulses() {
         return drivingMotor.getEncoderTicks();
     }
+
+    private Vector2d normalizeVector(Vector2d vec) {
+        Vector2d normalized = new Vector2d();
+        normalized.x = vec.x / vec.magnitude();
+        normalized.y = vec.y / vec.magnitude();
+        return normalized;
+    }
     
     @Override
-    protected void limitRotationOutput(double velocity) {
-        steeringMotor.limitOutput(getLimitedRoationOutput(velocity));
+    protected void limitRotationOutput(Vector2d moduleRotation) {
+        double limitThroughVelocity = driveMetersPerSecond_to_EncoderTicksPerSecond(Robot.swerve.getRobotVelocity().magnitude());
+        double limitThroughAngleOffset = normalizeVector(Robot.swerve.getRobotVelocity()).dot(normalizeVector(moduleRotation));
+        steeringMotor.limitOutput(getLimitedRoationOutput(limitThroughAngleOffset *limitThroughVelocity));
     }
 
     @Override

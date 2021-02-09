@@ -96,6 +96,11 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 	}
 
 	@Override
+	public int getEncoderVelocity() {
+		return getSelectedSensorVelocity();	
+	}
+
+	@Override
 	public boolean isForwardLimitSwitchActive() {
 		return getSensorCollection().isFwdLimitSwitchClosed();
 	}
@@ -190,7 +195,7 @@ public class FridolinsTalonSRX extends WPI_TalonSRX implements IFridolinsMotors 
 	}
 
 	@Override
-	public int getEncoderVelocity() {
-		return super.getSelectedSensorVelocity();
+	public void setEncoderDirection(boolean forward) {
+		super.setSensorPhase(forward);
 	}
 }

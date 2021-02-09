@@ -12,6 +12,7 @@ import java.util.Arrays;
 import ch.fridolinsrobotik.utilities.Algorithms;
 import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.Sendable;
+import edu.wpi.first.wpilibj.drive.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.kinematics.ChassisSpeeds;
@@ -112,6 +113,25 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         driveCartesian(ySpeed, xSpeed, zRotation, 0.0);
     }
 
+    private Vector2d swerveModuleStateToVector2d(SwerveModuleState state) {
+        Vector2d retVector = new Vector2d();
+        retVector.x = Math.cos(state.angle.getRadians()) * state.speedMetersPerSecond;
+        retVector.y = Math.sin(state.angle.getRadians()) * state.speedMetersPerSecond;
+        return retVector;
+    }
+
+    private SwerveDriveKinematics middleWheelSwervedrive = new SwerveDriveKinematics(new Translation2d(0.0, 0.0),
+            new Translation2d(0.0, 0.0));
+    private Vector2d robotVelocity;
+
+    /**
+     * @return Velocity vector of the whole robot. Length is the speed that the
+     *         robot drives in the direction of the vector in m/s
+     */
+    public Vector2d getRobotVelocity() {
+        return robotVelocity;
+    }
+
     /**
      * Drive method for Mecanum platform.
      *
@@ -161,6 +181,8 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(striveVector.getX(), -striveVector.getY(),
                 Math.PI * zRotation, Rotation2d.fromDegrees(0/*-gyroAngle*/));
         SwerveModuleState[] moduleStates = kinematics.toSwerveModuleStates(speeds);
+        SwerveModuleState robotState = middleWheelSwervedrive.toSwerveModuleStates(speeds)[0];
+        robotVelocity = swerveModuleStateToVector2d(robotState);
         for (int i = 0; i < moduleStates.length; ++i) {
             SwerveModule module = this.swerveModules[i];
             SwerveModuleState moduleState = moduleStates[i];

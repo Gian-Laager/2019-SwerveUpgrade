@@ -12,6 +12,7 @@ import java.util.StringJoiner;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
+import edu.wpi.first.wpilibj.drive.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 
@@ -58,10 +59,7 @@ public class SwerveModuleTalonSRX extends SwerveModule {
 
     @Override
     public void executeSwerveMovement() {
-        double driveSpeed = getDriveSpeedVelocity();
-        limitRotationOutput(driveSpeed);
-        steeringMotor.set(ControlMode.Position, getSteeringPosition());
-        drivingMotor.set(ControlMode.PercentOutput, driveSpeed);
+        throw new Error("Not implemented");
     }
 
     @Override
@@ -101,13 +99,12 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     }
 
     @Override
-    protected void limitRotationOutput(double velocity) {
-        steeringMotor.configPeakOutputForward(getLimitedRoationOutput(velocity));
-        steeringMotor.configPeakOutputReverse(-getLimitedRoationOutput(velocity));
+    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+        throw new Error("Not implemented");
     }
 
     @Override
-    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+    protected void limitRotationOutput(Vector2d moduleRotation) {
         throw new Error("Not implemented");
     }
 }

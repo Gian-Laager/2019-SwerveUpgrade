@@ -317,8 +317,8 @@ public class Motors {
             for (FridolinsTalonSRX motor : talonSwerveDriveMotors) {
                 // Set Brake Mode
                 motor.setIdleMode(FridolinsIdleModeType.kBrake);
-                motor.config_kF(0, 0.075); // ca. 0.015
-                motor.config_kP(0, 0.01); // ca. 0.015
+                motor.config_kF(0, 0.03375);
+                motor.config_kP(0, 0.015);
             }
 
             /* Spetial Configs */
@@ -333,6 +333,10 @@ public class Motors {
             talonSwerveDriveFrontLeft.setDirection(false);
             talonSwerveDriveFrontRight.setDirection(false);
 
+            talonSwerveDriveBackLeft.setEncoderDirection(true);
+            talonSwerveDriveBackRight.setEncoderDirection(true);
+            talonSwerveDriveFrontLeft.setEncoderDirection(true);
+            talonSwerveDriveFrontRight.setEncoderDirection(true);
             /*
             * TODO change the mecanical invert on the Robot and search the problem in the
             * Software for changine it whit setInverted()

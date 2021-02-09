@@ -100,6 +100,8 @@ public abstract class SwerveModule implements Sendable {
         }
     }
 
+    protected Vector2d wheelVector = new Vector2d();
+
     /**
      * Drive calculation method for Serve platform.
      *
@@ -116,9 +118,11 @@ public abstract class SwerveModule implements Sendable {
      */
     protected void calculateSwerveMovement(double speedMeterPerSecond, Rotation2d angle) {
         double wheelAngle = getSteeringAngle();
+        wheelVector.x = angle.getCos() * speedMeterPerSecond;
+        wheelVector.y = angle.getSin() * speedMeterPerSecond;
 
         /* the wheel angle as a vector representation */
-        Vector2d wheelVector = new Vector2d(Math.cos(wheelAngle), Math.sin(wheelAngle));
+        wheelVector = new Vector2d(Math.cos(wheelAngle), Math.sin(wheelAngle));
         Vector2d targetVector = new Vector2d(angle.getCos(), angle.getSin());
     
         /*
@@ -155,7 +159,7 @@ public abstract class SwerveModule implements Sendable {
         return modifiedGauseFunction(velocity);
     }
 
-    protected abstract void limitRotationOutput(double velocity); 
+    protected abstract void limitRotationOutput(Vector2d moduleRotation); 
 
     /**
      * Feeds the calculated swerve movement values into the motor controllers.
