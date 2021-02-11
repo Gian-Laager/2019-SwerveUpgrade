@@ -11,6 +11,7 @@ import java.util.StringJoiner;
 
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
 import edu.wpi.first.wpilibj.drive.Vector2d;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
@@ -27,7 +28,8 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
 
     public SwerveModuleFridolinsMotor(Vector2d mountingPosition, IFridolinsMotors steeringMotor,
             int steeringPulsesPerRotation, IFridolinsMotors drivingMotor, int drivingPulsesPerRotation) {
-        super(new Translation2d(mountingPosition.x, mountingPosition.y), steeringPulsesPerRotation, drivingPulsesPerRotation);
+        super(new Translation2d(mountingPosition.x, mountingPosition.y), steeringPulsesPerRotation,
+                drivingPulsesPerRotation);
         verify(drivingMotor, steeringMotor);
         this.drivingMotor = drivingMotor;
         this.steeringMotor = steeringMotor;
@@ -61,11 +63,12 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     }
 
     double maxVel = 0.0;
+
     @Override
     public void executeSwerveMovement() {
-//         limitRotationOutput(wheelVector);
+        limitRotationOutput(wheelVector);
         steeringMotor.setPosition(getSteeringPosition());
-        drivingMotor.setVelocity(getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput);
+        drivingMotor.setVelocity(driveMetersPerSecond_to_EncoderTicksPerSecond(getDriveSpeedVelocity()));
         int mSpeed = drivingMotor.getEncoderVelocity();
         if (mSpeed > maxVel)
             maxVel = mSpeed;
@@ -113,20 +116,45 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         normalized.y = vec.y / vec.magnitude();
         return normalized;
     }
-    
+
     @Override
     protected void limitRotationOutput(Vector2d moduleRotation) {
-        double limitThroughVelocity = driveMetersPerSecond_to_EncoderTicksPerSecond(Robot.swerve.getRobotVelocity().magnitude());
-        double limitThroughAngleOffset = normalizeVector(Robot.swerve.getRobotVelocity()).dot(normalizeVector(moduleRotation));
-        steeringMotor.limitOutput(getLimitedRoationOutput(limitThroughAngleOffset *limitThroughVelocity));
+        double limitThroughVelocity = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
+
+        double limitThroughAngleOffset = 0.0;
+        if (Robot.swerve.getRobotVelocity().magnitude() > 0)
+            limitThroughAngleOffset = 1
+                    - Math.abs(normalizeVector(Robot.swerve.getRobotVelocity()).dot(normalizeVector(moduleRotation)));
+        limitThroughAngleOffset *= 10;
+        limitThroughAngleOffset = Math.min(limitThroughAngleOffset, 1);
+
+        System.out.println("output limit: " + getLimitedRoationOutput(limitThroughAngleOffset * limitThroughVelocity)
+                + " with module rotation: [" + moduleRotation.x + ", " + moduleRotation.y + "]"
+                + " and robot velocity: [" + Robot.swerve.getRobotVelocity().x + ", "
+                + Robot.swerve.getRobotVelocity().y + "]");
+
+        steeringMotor.limitOutput(getLimitedRoationOutput(limitThroughAngleOffset * limitThroughVelocity));
+    }
+
+    @Override
+    public Rotation2d getDriveAngleFromEncoder() {
+        return new Rotation2d(
+                (steeringMotor.getEncoderTicks() / RobotMap.SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT) * 2 * Math.PI);
+    }
+
+    @Override
+    public double getDriveVelocityFromEncoder() {
+        return (steeringMotor.getEncoderVelocity() / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT)
+                * RobotMap.WHEEL_CIRCUMFERENCE;
     }
 
     @Override
     public void initSendable(SendableBuilder builder) {
         super.initSendable(builder);
         builder.addDoubleProperty("Drive Ticks", () -> this.drivingMotor.getEncoderTicks(), null);
-        builder.addDoubleProperty("Drive Speed", () -> this.drivingMotor.getEncoderVelocity(), null); 
-        builder.addDoubleProperty("Drive Speed Goal", () -> this.getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput, null);
+        builder.addDoubleProperty("Drive Speed", () -> this.drivingMotor.getEncoderVelocity(), null);
+        builder.addDoubleProperty("Drive Speed Goal",
+                () -> this.getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput, null);
         builder.addDoubleProperty("Drive max speed", () -> this.maxVel, null);
     }
 }

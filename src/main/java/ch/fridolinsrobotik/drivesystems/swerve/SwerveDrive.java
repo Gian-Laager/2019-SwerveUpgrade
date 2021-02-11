@@ -21,6 +21,7 @@ import edu.wpi.first.wpilibj.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 import edu.wpi.first.wpiutil.math.MathUtil;
+import frc.robot.RobotMap;
 
 /**
  * A class for driving Swerve drive platforms.
@@ -132,6 +133,20 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         return robotVelocity;
     }
 
+    protected Vector2d calcRobotVelocityWithEncoderSpeeds() {
+        SwerveModuleState[] states = new SwerveModuleState[swerveModules.length];
+        for (int i = 0; i < swerveModules.length; i++) {
+            states[i] = new SwerveModuleState(swerveModules[i].getDriveVelocityFromEncoder(), swerveModules[i].getDriveAngleFromEncoder());
+        }
+
+        ChassisSpeeds chassisSpeed = kinematics.toChassisSpeeds(states);
+        SwerveModuleState middleWheelState = middleWheelSwervedrive.toSwerveModuleStates(chassisSpeed)[0];
+        Vector2d middleWheelVelocity = new Vector2d();
+        middleWheelVelocity.x = middleWheelState.angle.getCos() * middleWheelState.speedMetersPerSecond;
+        middleWheelVelocity.y = middleWheelState.angle.getSin() * middleWheelState.speedMetersPerSecond;
+        return middleWheelVelocity;
+    }
+
     /**
      * Drive method for Mecanum platform.
      *
@@ -181,8 +196,7 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(striveVector.getX(), -striveVector.getY(),
                 Math.PI * zRotation, Rotation2d.fromDegrees(0/*-gyroAngle*/));
         SwerveModuleState[] moduleStates = kinematics.toSwerveModuleStates(speeds);
-        SwerveModuleState robotState = middleWheelSwervedrive.toSwerveModuleStates(speeds)[0];
-        robotVelocity = swerveModuleStateToVector2d(robotState);
+        robotVelocity = calcRobotVelocityWithEncoderSpeeds();
         for (int i = 0; i < moduleStates.length; ++i) {
             SwerveModule module = this.swerveModules[i];
             SwerveModuleState moduleState = moduleStates[i];
@@ -237,10 +251,10 @@ public class SwerveDrive extends MotorSafety implements Sendable {
                 maxMagnitude = temp;
             }
         }
-        if (maxMagnitude > maxSpeed45PercentOutput) {
+        if (SwerveModule.driveMetersPerSecond_to_EncoderTicksPerSecond(maxMagnitude) > maxSpeed45PercentOutput) {
             for (int i = 0; i < this.swerveModules.length; i++) {
                 SwerveModule module = this.swerveModules[i];
-                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * maxSpeed45PercentOutput);
+                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) * RobotMap.WHEEL_CIRCUMFERENCE);
             }
         }
     }

@@ -117,21 +117,21 @@ public abstract class SwerveModule implements Sendable {
      *                  Clockwise is positive.
      */
     protected void calculateSwerveMovement(double speedMeterPerSecond, Rotation2d angle) {
-        double wheelAngle = getSteeringAngle();
-        wheelVector.x = angle.getCos() * speedMeterPerSecond;
-        wheelVector.y = angle.getSin() * speedMeterPerSecond;
+        wheelVector.x = Math.cos(getSteeringAngle()) * speedMeterPerSecond;
+        wheelVector.y = Math.sin(getSteeringAngle()) * speedMeterPerSecond;
 
-        /* the wheel angle as a vector representation */
-        wheelVector = new Vector2d(Math.cos(wheelAngle), Math.sin(wheelAngle));
+        Vector2d normalizedWheelVecotr = new Vector2d();
+        normalizedWheelVecotr.x = Math.cos(getSteeringAngle());
+        normalizedWheelVecotr.y = Math.sin(getSteeringAngle());
         Vector2d targetVector = new Vector2d(angle.getCos(), angle.getSin());
-    
+
         /*
          * Angle between wheel vector and target vector. Only the target vector's
          * magnitude is needed, since the wheel vector's magnitude is always 1.
          */
-        double angleToSteer = Math.acos(targetVector.dot(wheelVector) / targetVector.magnitude());
-        double steeringDirection = Math.signum(wheelVector.x * targetVector.y - wheelVector.y * targetVector.x);
-        
+        double angleToSteer = Math.acos(targetVector.dot(normalizedWheelVecotr));
+        double steeringDirection = Math.signum(normalizedWheelVecotr.x * targetVector.y - normalizedWheelVecotr.y * targetVector.x);
+
         double driveDirection;
         /* if steering angle is bigger than 90' the opposite side (-180') is faster */
         if (angleToSteer > Math.PI / 2) {
@@ -142,15 +142,14 @@ public abstract class SwerveModule implements Sendable {
         }
 
         angleToSteer *= steeringDirection;
-        
-        setSteeringPosition((int)getSteeringEncoderPulses()
+
+        setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
-        double speedMpS = driveDirection * driveInverted * speedMeterPerSecond;
-        setDriveSpeedVelocity(driveMetersPerSecond_to_EncoderTicksPerSecond(speedMpS));
+        setDriveSpeedVelocity(driveDirection * driveInverted * speedMeterPerSecond);
     }
-    
+
     private static double modifiedGauseFunction(double x) {
-        double a = 0.597837 / (Robot.swerve.m_speedFactor * Robot.swerve.m_speedFactor); // factor to streche curve in x direction
+        double a = 0.597837; // factor to streche curve in x direction
         double b = -0.3; // y offset of the curve
         return Math.exp(-(x * x) * a) + b;
     }
@@ -159,7 +158,17 @@ public abstract class SwerveModule implements Sendable {
         return modifiedGauseFunction(velocity);
     }
 
-    protected abstract void limitRotationOutput(Vector2d moduleRotation); 
+    protected abstract void limitRotationOutput(Vector2d moduleRotation);
+
+    /**
+     * @return Returns the rotation of the wheel messured by the encoder
+     */
+    public abstract Rotation2d getDriveAngleFromEncoder();
+
+    /**
+     * @return Velocity of the wheel messured from the encoder in meters per second
+     */
+    public abstract double getDriveVelocityFromEncoder();
 
     /**
      * Feeds the calculated swerve movement values into the motor controllers.
@@ -309,8 +318,8 @@ public abstract class SwerveModule implements Sendable {
         return (int) (pulsesPerRotation / (2 * Math.PI) * radians);
     }
 
-    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
-        return (velocity / drivingPulsesPerRotation) * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT; 
+    public static double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+        return (velocity / RobotMap.WHEEL_CIRCUMFERENCE) * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT;
     }
 
     /*************************** Sendable part begin *****************************/

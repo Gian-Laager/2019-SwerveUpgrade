@@ -13,6 +13,7 @@ import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 import edu.wpi.first.wpilibj.drive.Vector2d;
+import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 
@@ -99,12 +100,17 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     }
 
     @Override
-    protected double driveMetersPerSecond_to_EncoderTicksPerSecond(double velocity) {
+    protected void limitRotationOutput(Vector2d moduleRotation) {
         throw new Error("Not implemented");
     }
 
     @Override
-    protected void limitRotationOutput(Vector2d moduleRotation) {
+    public Rotation2d getDriveAngleFromEncoder() {
+        throw new Error("Not implemented");
+    }
+
+    @Override
+    public double getDriveVelocityFromEncoder() {
         throw new Error("Not implemented");
     }
 }
