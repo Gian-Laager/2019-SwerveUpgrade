@@ -117,20 +117,17 @@ public abstract class SwerveModule implements Sendable {
      *                  Clockwise is positive.
      */
     protected void calculateSwerveMovement(double speedMeterPerSecond, Rotation2d angle) {
-        wheelVector.x = Math.cos(getSteeringAngle()) * speedMeterPerSecond;
-        wheelVector.y = Math.sin(getSteeringAngle()) * speedMeterPerSecond;
-
-        Vector2d normalizedWheelVecotr = new Vector2d();
-        normalizedWheelVecotr.x = Math.cos(getSteeringAngle());
-        normalizedWheelVecotr.y = Math.sin(getSteeringAngle());
-        Vector2d targetVector = new Vector2d(angle.getCos(), angle.getSin());
+        wheelVector = Vector2d.fromPolar(angle.getRadians(), speedMeterPerSecond);
+        Vector2d normalizedWheelVecotr = wheelVector.normalize();
+        Vector2d targetVector = Vector2d.fromRad(angle.getRadians());
+        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector); 
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
          * magnitude is needed, since the wheel vector's magnitude is always 1.
          */
         double angleToSteer = Math.acos(targetVector.dot(normalizedWheelVecotr));
-        double steeringDirection = Math.signum(normalizedWheelVecotr.x * targetVector.y - normalizedWheelVecotr.y * targetVector.x);
+        double steeringDirection = Math.signum(normalizedWheelVecotr.cross(targetVector));
 
         double driveDirection;
         /* if steering angle is bigger than 90' the opposite side (-180') is faster */
@@ -154,19 +151,19 @@ public abstract class SwerveModule implements Sendable {
         return Math.exp(-(x * x) * a) + b;
     }
 
-    public static double getLimitedRoationOutput(double velocity) {
+    public static double getLimitedDotproduct(double velocity) {
         return modifiedGauseFunction(velocity);
     }
 
-    protected abstract void limitRotationOutput(Vector2d moduleRotation);
+    protected abstract Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation);
 
     /**
-     * @return Returns the rotation of the wheel messured by the encoder
+     * @return Returns the rotation of the wheel measured by the encoder
      */
     public abstract Rotation2d getDriveAngleFromEncoder();
 
     /**
-     * @return Velocity of the wheel messured from the encoder in meters per second
+     * @return Velocity of the wheel measured from the encoder in meters per second
      */
     public abstract double getDriveVelocityFromEncoder();
 

@@ -12,7 +12,7 @@ import java.util.Arrays;
 import ch.fridolinsrobotik.utilities.Algorithms;
 import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.Sendable;
-import ch.fridolinsrobotik.utilities.Vector2d
+import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.kinematics.ChassisSpeeds;
@@ -114,13 +114,6 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         driveCartesian(ySpeed, xSpeed, zRotation, 0.0);
     }
 
-    private Vector2d swerveModuleStateToVector2d(SwerveModuleState state) {
-        Vector2d retVector = new Vector2d();
-        retVector.x = Math.cos(state.angle.getRadians()) * state.speedMetersPerSecond;
-        retVector.y = Math.sin(state.angle.getRadians()) * state.speedMetersPerSecond;
-        return retVector;
-    }
-
     private SwerveDriveKinematics middleWheelSwervedrive = new SwerveDriveKinematics(new Translation2d(0.0, 0.0),
             new Translation2d(0.0, 0.0));
     private Vector2d robotVelocity;
@@ -141,10 +134,23 @@ public class SwerveDrive extends MotorSafety implements Sendable {
 
         ChassisSpeeds chassisSpeed = kinematics.toChassisSpeeds(states);
         SwerveModuleState middleWheelState = middleWheelSwervedrive.toSwerveModuleStates(chassisSpeed)[0];
-        Vector2d middleWheelVelocity = new Vector2d();
-        middleWheelVelocity.x = middleWheelState.angle.getCos() * middleWheelState.speedMetersPerSecond;
-        middleWheelVelocity.y = middleWheelState.angle.getSin() * middleWheelState.speedMetersPerSecond;
-        return middleWheelVelocity;
+        return Vector2d.fromPolar(middleWheelState.angle.getRadians(), middleWheelState.speedMetersPerSecond);
+    }
+
+    private double applyDeadbandToRotation(double rotation) {
+        if (Math.abs(rotation) < m_deadband)
+            return 0;
+        else if (rotation >= m_deadband)
+            return Algorithms.scale(rotation, m_deadband, 1, 0, 1);
+        else 
+            return Algorithms.scale(rotation, -1, m_deadband, -1, 0);
+    }
+
+    private Translation2d applyDeadbandToStriveVector(Translation2d striveVector) {
+        if (striveVector.getNorm() >= m_deadband)
+            return Algorithms.scale(striveVector, m_deadband, 1, 0, 1);
+        else 
+            return new Translation2d(0.0, 0.0);
     }
 
     /**
@@ -168,35 +174,32 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         xSpeed = MathUtil.clamp(xSpeed, -1, 1);
         zRotation = MathUtil.clamp(zRotation, -1, 1);
 
-        /*
-         * apply deadband to rotation to prevent jittering of the steering.
-         */
-        if (Math.abs(zRotation) < m_deadband) {
-            zRotation = 0;
-        } else if (zRotation >= m_deadband) {
-            zRotation = Algorithms.scale(zRotation, m_deadband, 1, 0, 1);
-        } else {
-            zRotation = Algorithms.scale(zRotation, -1, m_deadband, -1, 0);
-        }
+        zRotation = applyDeadbandToRotation(zRotation);
+        
         // System.out.println(String.format("SwerveDrive: y speed: %f, x speed: %f,
         // zRotation: %f", ySpeed, xSpeed, zRotation));
 
         Translation2d striveVector = new Translation2d(xSpeed, ySpeed);
         striveVector.rotateBy(Rotation2d.fromDegrees(-gyroAngle));
 
-        /*
-         * apply deadband without disturbing the steering angle to prevent abrupt
-         * stopping.
-         */
-        if (striveVector.getNorm() >= m_deadband) {
-            striveVector = Algorithms.scale(striveVector, m_deadband, 1, 0, 1);
-        } else {
-            striveVector = new Translation2d(0.0, 0.0);
-        }
+        striveVector = applyDeadbandToStriveVector(striveVector);
+
         ChassisSpeeds speeds = ChassisSpeeds.fromFieldRelativeSpeeds(striveVector.getX(), -striveVector.getY(),
                 Math.PI * zRotation, Rotation2d.fromDegrees(0/*-gyroAngle*/));
         SwerveModuleState[] moduleStates = kinematics.toSwerveModuleStates(speeds);
         robotVelocity = calcRobotVelocityWithEncoderSpeeds();
+
+        applyMovementToAllModules(zRotation, striveVector, moduleStates);
+
+        normalize();
+
+        for (SwerveModule module : this.swerveModules) {
+            module.executeSwerveMovement();
+        }
+        feed();
+    }
+
+    private void applyMovementToAllModules(double zRotation, Translation2d striveVector, SwerveModuleState[] moduleStates) {
         for (int i = 0; i < moduleStates.length; ++i) {
             SwerveModule module = this.swerveModules[i];
             SwerveModuleState moduleState = moduleStates[i];
@@ -209,13 +212,6 @@ public class SwerveDrive extends MotorSafety implements Sendable {
             } else
                 module.setDriveSpeedVelocity(0.0);
         }
-
-        normalize();
-
-        for (SwerveModule module : this.swerveModules) {
-            module.executeSwerveMovement();
-        }
-        feed();
     }
 
     /**
@@ -244,6 +240,16 @@ public class SwerveDrive extends MotorSafety implements Sendable {
     protected static final double maxSpeed45PercentOutput = 14132.0;
 
     protected void normalize() {
+        double maxMagnitude = getMaxMagnitude();
+        if (SwerveModule.driveMetersPerSecond_to_EncoderTicksPerSecond(maxMagnitude) > maxSpeed45PercentOutput) {
+            for (int i = 0; i < this.swerveModules.length; i++) {
+                SwerveModule module = this.swerveModules[i];
+                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) * RobotMap.WHEEL_CIRCUMFERENCE);
+            }
+        }
+    }
+
+    private double getMaxMagnitude() {
         double maxMagnitude = 0;
         for (int i = 0; i < this.swerveModules.length; i++) {
             double temp = Math.abs(this.swerveModules[i].getDriveSpeedVelocity());
@@ -251,12 +257,7 @@ public class SwerveDrive extends MotorSafety implements Sendable {
                 maxMagnitude = temp;
             }
         }
-        if (SwerveModule.driveMetersPerSecond_to_EncoderTicksPerSecond(maxMagnitude) > maxSpeed45PercentOutput) {
-            for (int i = 0; i < this.swerveModules.length; i++) {
-                SwerveModule module = this.swerveModules[i];
-                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) * RobotMap.WHEEL_CIRCUMFERENCE);
-            }
-        }
+        return maxMagnitude;
     }
 
     /************************* MotorSafety part ends ***************************/

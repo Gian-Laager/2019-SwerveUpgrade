@@ -10,6 +10,7 @@ package ch.fridolinsrobotik.drivesystems.swerve;
 import java.util.StringJoiner;
 
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
+import ch.fridolinsrobotik.utilities.Pair;
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
@@ -62,16 +63,10 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         throw new NullPointerException(joiner.toString());
     }
 
-    double maxVel = 0.0;
-
     @Override
     public void executeSwerveMovement() {
-        limitRotationOutput(wheelVector);
         steeringMotor.setPosition(getSteeringPosition());
         drivingMotor.setVelocity(driveMetersPerSecond_to_EncoderTicksPerSecond(getDriveSpeedVelocity()));
-        int mSpeed = drivingMotor.getEncoderVelocity();
-        if (mSpeed > maxVel)
-            maxVel = mSpeed;
     }
 
     @Override
@@ -110,23 +105,18 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         return drivingMotor.getEncoderTicks();
     }
 
+    private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d targetVector) {
+        if (solutions.first.dot(targetVector) > solutions.second.dot(targetVector))
+            return solutions.first;
+        else 
+            return solutions.second;
+    }
+
     @Override
-    protected void limitRotationOutput(Vector2d moduleRotation) {
-        double limitThroughVelocity = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
-
-        double limitThroughAngleOffset = 0.0;
-        if (Robot.swerve.getRobotVelocity().magnitude() > 0)
-            limitThroughAngleOffset = 1
-                    - Math.abs(Robot.swerve.getRobotVelocity().normalize().dot(moduleRotation.normalize()));
-        limitThroughAngleOffset *= 10;
-        limitThroughAngleOffset = Math.min(limitThroughAngleOffset, 1);
-
-        System.out.println("output limit: " + getLimitedRoationOutput(limitThroughAngleOffset * limitThroughVelocity)
-                + " with module rotation: [" + moduleRotation.x + ", " + moduleRotation.y + "]"
-                + " and robot velocity: [" + Robot.swerve.getRobotVelocity().x + ", "
-                + Robot.swerve.getRobotVelocity().y + "]");
-
-        steeringMotor.limitOutput(getLimitedRoationOutput(limitThroughAngleOffset * limitThroughVelocity));
+    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation) {
+        double velocityPercent = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
+        Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize().inverseDot(getLimitedDotproduct(velocityPercent));
+        return getBestSolutionOfInverseDotProduct(limitedTargetVectors, targetRotation);
     }
 
     @Override
@@ -148,6 +138,5 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         builder.addDoubleProperty("Drive Speed", () -> this.drivingMotor.getEncoderVelocity(), null);
         builder.addDoubleProperty("Drive Speed Goal",
                 () -> this.getDriveSpeedVelocity() * SwerveDrive.maxSpeed45PercentOutput, null);
-        builder.addDoubleProperty("Drive max speed", () -> this.maxVel, null);
     }
 }

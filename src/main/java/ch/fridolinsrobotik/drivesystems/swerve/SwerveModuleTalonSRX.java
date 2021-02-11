@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 /**
  * {@inheritDoc} A Swerve module using for both steering and driving TalonSRX'
  */
+@Deprecated
 public class SwerveModuleTalonSRX extends SwerveModule {
     private static int instances;
     WPI_TalonSRX drivingMotor;
@@ -100,17 +101,17 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     }
 
     @Override
-    protected void limitRotationOutput(Vector2d moduleRotation) {
-        throw new Error("Not implemented");
-    }
-
-    @Override
     public Rotation2d getDriveAngleFromEncoder() {
         throw new Error("Not implemented");
     }
 
     @Override
     public double getDriveVelocityFromEncoder() {
+        throw new Error("Not implemented");
+    }
+
+    @Override
+    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation) {
         throw new Error("Not implemented");
     }
 }

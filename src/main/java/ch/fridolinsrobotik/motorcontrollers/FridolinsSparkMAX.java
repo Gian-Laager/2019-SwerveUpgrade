@@ -11,9 +11,7 @@ import com.ctre.phoenix.ErrorCode;
 import com.revrobotics.CANDigitalInput.LimitSwitchPolarity;
 import com.revrobotics.CANSparkMax;
 
-/**
- * Add your docs here.
- */
+@Deprecated
 public class FridolinsSparkMAX extends CANSparkMax implements IFridolinsMotors {
 
     public FridolinsSparkMAX(int deviceID, com.revrobotics.CANSparkMaxLowLevel.MotorType type) {
