@@ -8,11 +8,15 @@
 package ch.fridolinsrobotik.drivesystems.swerve;
 
 import edu.wpi.first.wpilibj.Sendable;
+
+import org.opencv.core.Algorithm;
+
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
+import edu.wpi.first.wpiutil.math.MathUtil;
 import frc.robot.Robot;
 import frc.robot.RobotMap;
 
@@ -120,7 +124,7 @@ public abstract class SwerveModule implements Sendable {
         wheelVector = Vector2d.fromPolar(angle.getRadians(), speedMeterPerSecond);
         Vector2d normalizedWheelVecotr = wheelVector.normalize();
         Vector2d targetVector = Vector2d.fromRad(angle.getRadians());
-        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector); 
+        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector);
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
@@ -145,14 +149,45 @@ public abstract class SwerveModule implements Sendable {
         setDriveSpeedVelocity(driveDirection * driveInverted * speedMeterPerSecond);
     }
 
+     /**  
+      * <p>Default value when {@link #getLoopTime()} hasn't been called.</p>
+      * <b>DO NOT CHANGE</b> the function {@link #modifiedGauseFunction(double)} has been modified for this exact time.
+      */
+    private static final double defaultLoopTime = 0.02;
+
     private static double modifiedGauseFunction(double x) {
-        double a = 0.597837; // factor to streche curve in x direction
-        double b = -0.3; // y offset of the curve
-        return Math.exp(-(x * x) * a) + b;
+        double a = -Math.log(Math.PI / 100); // factor to streche curve in x direction
+        double b = 1; // y offset of the curve
+        return -Math.exp(-(x * x) * a) + b;
     }
 
-    public static double getLimitedDotproduct(double velocity) {
-        return modifiedGauseFunction(velocity);
+    private long timeOfLastLoop = -1;
+
+    /**
+     * <b>Note</b>: This function should only be used with the modified gause
+     * function since it returns {@link #defaultLoopTime} when the function hasn't been called yet.
+     * 
+     * @return The time that has passed sinse the function has been called in
+     *         seconds
+     */
+    private double getLoopTime() {
+        /**
+         * default value because of the modifications on {@link #modifiedGauseFunction(double)}, with
+         * wich it will be used.
+         */
+        double elapsedTime = defaultLoopTime; 
+                                   
+        long timeOfThisLoop = System.nanoTime();
+
+        if (timeOfLastLoop != -1)
+            elapsedTime = (timeOfThisLoop - timeOfThisLoop) / 1e6;
+
+        timeOfLastLoop = timeOfThisLoop;
+        return elapsedTime;
+    }
+
+    public double getLimitedDotProduct(double velocity) {
+        return MathUtil.clamp(modifiedGauseFunction(velocity) * getLoopTime() / defaultLoopTime, -1.0, 1.0);
     }
 
     protected abstract Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation);

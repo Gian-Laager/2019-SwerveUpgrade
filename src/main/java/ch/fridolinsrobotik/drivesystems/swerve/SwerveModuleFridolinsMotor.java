@@ -115,7 +115,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     @Override
     protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation) {
         double velocityPercent = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
-        Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize().inverseDot(getLimitedDotproduct(velocityPercent));
+        Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize().inverseDot(getLimitedDotProduct(velocityPercent));
         return getBestSolutionOfInverseDotProduct(limitedTargetVectors, targetRotation);
     }
 
