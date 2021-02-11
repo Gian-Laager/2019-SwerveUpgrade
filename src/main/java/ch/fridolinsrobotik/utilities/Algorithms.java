@@ -7,7 +7,7 @@
 
 package ch.fridolinsrobotik.utilities;
 
-import edu.wpi.first.wpilibj.drive.Vector2d;
+import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 /**
  * Collection of mathematic algortihms

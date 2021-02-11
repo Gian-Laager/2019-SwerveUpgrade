@@ -29,7 +29,7 @@ import ch.fridolinsrobotik.motorcontrollers.FridolinsIdleModeType;
 import ch.fridolinsrobotik.motorcontrollers.FridolinsLimitSwitchPolarity;
 import ch.fridolinsrobotik.motorcontrollers.FridolinsTalonSRX;
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
-import edu.wpi.first.wpilibj.drive.Vector2d;
+import ch.fridolinsrobotik.utilities.Vector2d;
 
 /**
  * Add your docs here.

@@ -10,7 +10,7 @@ package ch.fridolinsrobotik.drivesystems.swerve;
 import java.util.StringJoiner;
 
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
-import edu.wpi.first.wpilibj.drive.Vector2d;
+import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
@@ -110,13 +110,6 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         return drivingMotor.getEncoderTicks();
     }
 
-    private Vector2d normalizeVector(Vector2d vec) {
-        Vector2d normalized = new Vector2d();
-        normalized.x = vec.x / vec.magnitude();
-        normalized.y = vec.y / vec.magnitude();
-        return normalized;
-    }
-
     @Override
     protected void limitRotationOutput(Vector2d moduleRotation) {
         double limitThroughVelocity = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
@@ -124,7 +117,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         double limitThroughAngleOffset = 0.0;
         if (Robot.swerve.getRobotVelocity().magnitude() > 0)
             limitThroughAngleOffset = 1
-                    - Math.abs(normalizeVector(Robot.swerve.getRobotVelocity()).dot(normalizeVector(moduleRotation)));
+                    - Math.abs(Robot.swerve.getRobotVelocity().normalize().dot(moduleRotation.normalize()));
         limitThroughAngleOffset *= 10;
         limitThroughAngleOffset = Math.min(limitThroughAngleOffset, 1);
 

@@ -12,7 +12,7 @@ import java.util.Arrays;
 import ch.fridolinsrobotik.utilities.Algorithms;
 import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.Sendable;
-import edu.wpi.first.wpilibj.drive.Vector2d;
+import ch.fridolinsrobotik.utilities.Vector2d
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.kinematics.ChassisSpeeds;
