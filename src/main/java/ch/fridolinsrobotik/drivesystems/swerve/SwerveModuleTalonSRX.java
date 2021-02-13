@@ -111,7 +111,7 @@ public class SwerveModuleTalonSRX extends SwerveModule {
     }
 
     @Override
-    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation) {
+    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation, double velocity) {
         throw new Error("Not implemented");
     }
 }

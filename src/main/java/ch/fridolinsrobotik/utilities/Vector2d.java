@@ -20,15 +20,17 @@ public class Vector2d extends edu.wpi.first.wpilibj.drive.Vector2d {
     /**
      * <b>Note</b>: The vector has to be normalized.
      * 
-     * @param dotProduct The value you would get by taking the dot product of
-     *                   the result and this vector.
+     * @param dotProduct The value you would get by taking the dot product of the
+     *                   result and this vector.
      * @return The tow vectors with a dot product of "dotProduct". Both vectors in
      *         the pair are normalized.
      * @throws ArithmeticException If the vector isn't normalized
      * @throws ArithmeticException If "dotProduct" is not a value between -1 and 1.
      */
     public Pair<Vector2d, Vector2d> inverseDot(double dotProduct) {
-        if (magnitude() != 1)
+        // floating point comaprisen, because of the unprecice double it can happen that
+        // the magnitude would be one with the exact numbers but actualy isn't.
+        if (Math.abs(magnitude() - 1.0) / magnitude() > 0.000001 || magnitude() == 0.0)
             throw new ArithmeticException(
                     "The magnitude of the vector has to be 1 to perform an inverse dot product. Magnitude is: "
                             + magnitude());
@@ -115,6 +117,13 @@ public class Vector2d extends edu.wpi.first.wpilibj.drive.Vector2d {
      */
     public static Vector2d fromRad(double angle) {
         return fromPolar(angle, 1.0);
+    }
+
+    /**
+     * @return A new vector wich starts where {@link #start} ends and ends wehre {@link #end} ends.
+     */
+    public static Vector2d fromVectorToVector(Vector2d start, Vector2d end) {
+        return new Vector2d(end.x - start.x, end.y - start.y);
     }
 
     /**

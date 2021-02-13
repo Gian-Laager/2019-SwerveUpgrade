@@ -11,6 +11,7 @@ import java.util.StringJoiner;
 
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
 import ch.fridolinsrobotik.utilities.Pair;
+import ch.fridolinsrobotik.utilities.Timer;
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
@@ -105,18 +106,52 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         return drivingMotor.getEncoderTicks();
     }
 
-    private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d targetVector) {
-        if (solutions.first.dot(targetVector) > solutions.second.dot(targetVector))
+    private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d moduleRotation,
+            Vector2d actualTargetVector) {
+        if ((actualTargetVector.dot(moduleRotation) < solutions.first.dot(moduleRotation)
+                || solutions.first.dot(moduleRotation) < 0)
+                && (actualTargetVector.dot(moduleRotation) < solutions.second.dot(moduleRotation)
+                        || solutions.second.dot(moduleRotation) < 0))
+            return actualTargetVector;
+        if (solutions.first.dot(moduleRotation) > solutions.second.dot(moduleRotation)
+                || solutions.second.dot(moduleRotation) < 0)
             return solutions.first;
-        else 
+        else
             return solutions.second;
     }
 
+    /**
+     * @param velocity The current velocity of the swerve module
+     * @return The time that the limited output would take to make the curve
+     */
+    private double getDelayOfSmothedCurve(double velocity) {
+        return Math.PI / 2 * Math.exp(velocity * velocity * gauseFactor);
+    }
+
+    private Timer calcTargetDelay = new Timer();
+
+    private Vector2d calcTargetAfterdelay(Vector2d moduleRotatoin, Vector2d targetRotation, double velocity) {
+        Vector2d targetAfterdelay = targetRotation;
+        if (calcTargetDelay.getLastStarted() != -1 && lastTargetVector != null) {
+            double deltaAngle = Math.acos(lastTargetVector.dot(targetRotation)) * calcTargetDelay.getLastStarted() / 1000;
+            deltaAngle *= getDelayOfSmothedCurve(velocity);
+            targetAfterdelay = Vector2d.fromRad(deltaAngle);
+        }
+
+        calcTargetDelay.start();
+        return targetAfterdelay;
+    }
+
     @Override
-    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation) {
-        double velocityPercent = (Robot.swerve.getRobotVelocity().magnitude() / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
-        Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize().inverseDot(getLimitedDotProduct(velocityPercent));
-        return getBestSolutionOfInverseDotProduct(limitedTargetVectors, targetRotation);
+    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation, double velocity) {
+        Vector2d targetAfterdelay = calcTargetAfterdelay(moduleRotation, targetRotation, velocity);
+        double velocityPercent = (velocity / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
+        Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize()
+                .inverseDot(getLimitedDotProduct(velocityPercent));
+        Vector2d limitedTargetVector = getBestSolutionOfInverseDotProduct(limitedTargetVectors, moduleRotation, targetRotation);
+        if (limitedTargetVector.dot(moduleRotation) > targetAfterdelay.dot(moduleRotation))
+            return limitedTargetVector;
+        return targetRotation;
     }
 
     @Override

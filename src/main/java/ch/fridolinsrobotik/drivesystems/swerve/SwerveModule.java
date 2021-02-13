@@ -105,6 +105,7 @@ public abstract class SwerveModule implements Sendable {
     }
 
     protected Vector2d wheelVector = new Vector2d();
+    protected Vector2d lastTargetVector = null;
 
     /**
      * Drive calculation method for Serve platform.
@@ -121,10 +122,15 @@ public abstract class SwerveModule implements Sendable {
      *                  Clockwise is positive.
      */
     protected void calculateSwerveMovement(double speedMeterPerSecond, Rotation2d angle) {
-        wheelVector = Vector2d.fromPolar(angle.getRadians(), speedMeterPerSecond);
+        wheelVector = Vector2d.fromPolar(getSteeringAngle(), speedMeterPerSecond);
         Vector2d normalizedWheelVecotr = wheelVector.normalize();
         Vector2d targetVector = Vector2d.fromRad(angle.getRadians());
-        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector);
+        System.out.println(String.format(
+                "Limited dot product: %f, velocity: %f, actual target vector: %s, limited target vector: %s, wheel vector: %s",
+                getLimitedDotProduct(speedMeterPerSecond), speedMeterPerSecond, targetVector.toString(),
+                getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedMeterPerSecond).toString(),
+                wheelVector.toString()));
+        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedMeterPerSecond);
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
@@ -147,14 +153,28 @@ public abstract class SwerveModule implements Sendable {
         setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
         setDriveSpeedVelocity(driveDirection * driveInverted * speedMeterPerSecond);
+        lastTargetVector = targetVector;
     }
 
-     /**  
-      * <p>Default value when {@link #getLoopTime()} hasn't been called.</p>
-      * <b>DO NOT CHANGE</b> the function {@link #modifiedGauseFunction(double)} has been modified for this exact time.
-      */
+    /**
+     * <p>
+     * Default value when {@link #getLoopTime()} hasn't been called.
+     * </p>
+     * <b>DO NOT CHANGE</b> the function {@link #modifiedGauseFunction(double)} has
+     * been modified for this exact time.
+     */
+
     private static final double defaultLoopTime = 0.02;
 
+    /**
+     * factor to streche Gause curve in x direction
+     */
+    protected final double gauseFactor = -Math.log(Math.PI / 100); // factor to streche curve in x direction
+    
+    /**
+     * y offset of the Gause curve
+     */
+    protected final double gauseOffset = 1; // y offset of the curve
     private static double modifiedGauseFunction(double x) {
         double a = -Math.log(Math.PI / 100); // factor to streche curve in x direction
         double b = 1; // y offset of the curve
@@ -165,22 +185,23 @@ public abstract class SwerveModule implements Sendable {
 
     /**
      * <b>Note</b>: This function should only be used with the modified gause
-     * function since it returns {@link #defaultLoopTime} when the function hasn't been called yet.
+     * function since it returns {@link #defaultLoopTime} when the function hasn't
+     * been called yet.
      * 
      * @return The time that has passed sinse the function has been called in
      *         seconds
      */
     private double getLoopTime() {
         /**
-         * default value because of the modifications on {@link #modifiedGauseFunction(double)}, with
-         * wich it will be used.
+         * default value because of the modifications on
+         * {@link #modifiedGauseFunction(double)}, with wich it will be used.
          */
-        double elapsedTime = defaultLoopTime; 
-                                   
-        long timeOfThisLoop = System.nanoTime();
+        double elapsedTime = defaultLoopTime;
+
+        long timeOfThisLoop = System.currentTimeMillis();
 
         if (timeOfLastLoop != -1)
-            elapsedTime = (timeOfThisLoop - timeOfThisLoop) / 1e6;
+            elapsedTime = (timeOfThisLoop - timeOfLastLoop) / 1e3;
 
         timeOfLastLoop = timeOfThisLoop;
         return elapsedTime;
@@ -190,7 +211,8 @@ public abstract class SwerveModule implements Sendable {
         return MathUtil.clamp(modifiedGauseFunction(velocity) * getLoopTime() / defaultLoopTime, -1.0, 1.0);
     }
 
-    protected abstract Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation);
+    protected abstract Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation,
+            double velocity);
 
     /**
      * @return Returns the rotation of the wheel measured by the encoder
