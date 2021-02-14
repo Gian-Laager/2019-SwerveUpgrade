@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.Sendable;
 
 import org.opencv.core.Algorithm;
 
+import ch.fridolinsrobotik.utilities.Timer;
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
@@ -121,16 +122,28 @@ public abstract class SwerveModule implements Sendable {
      * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0].
      *                  Clockwise is positive.
      */
-    protected void calculateSwerveMovement(double speedMeterPerSecond, Rotation2d angle) {
-        wheelVector = Vector2d.fromPolar(getSteeringAngle(), speedMeterPerSecond);
+    protected void calculateSwerveMovement(double speedPercent, Rotation2d angle) {
+        wheelVector = Vector2d.fromPolar(getSteeringAngle(), speedPercent);
         Vector2d normalizedWheelVecotr = wheelVector.normalize();
         Vector2d targetVector = Vector2d.fromRad(angle.getRadians());
-        System.out.println(String.format(
-                "Limited dot product: %f, velocity: %f, actual target vector: %s, limited target vector: %s, wheel vector: %s",
-                getLimitedDotProduct(speedMeterPerSecond), speedMeterPerSecond, targetVector.toString(),
-                getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedMeterPerSecond).toString(),
-                wheelVector.toString()));
-        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedMeterPerSecond);
+        // System.out.println(String.format(
+        // "Limited dot product: %f, velocity: %f, actual target vector: %s, limited
+        // target vector: %s, wheel vector: %s",
+        // getLimitedDotProduct(speedMeterPerSecond), speedMeterPerSecond,
+        // targetVector.toString(),
+        // getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
+        // speedMeterPerSecond).toString(),
+        // wheelVector.toString()));
+        System.out.print("Actual target vector: " + targetVector.toString());
+        double time = defaultLoopTime;
+        if (loopTimeLimitedDotProduct.getLastStarted() != -1)
+            time = loopTimeLimitedDotProduct.getLastStarted();
+        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedPercent);
+        System.out.println(
+                String.format(", limited target vector: %s, wheel vector: %s, limited dot product: %f, velocity: %f",
+                        targetVector.toString(), normalizedWheelVecotr.toString(),
+                        MathUtil.clamp(modifiedGauseFunction(speedPercent) / (time / defaultLoopTime), -1.0, 1.0),
+                        speedPercent));
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
@@ -152,7 +165,7 @@ public abstract class SwerveModule implements Sendable {
 
         setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
-        setDriveSpeedVelocity(driveDirection * driveInverted * speedMeterPerSecond);
+        setDriveSpeedVelocity(driveDirection * driveInverted * speedPercent);
         lastTargetVector = targetVector;
     }
 
@@ -170,18 +183,19 @@ public abstract class SwerveModule implements Sendable {
      * factor to streche Gause curve in x direction
      */
     protected final double gauseFactor = -Math.log(Math.PI / 100); // factor to streche curve in x direction
-    
+
     /**
      * y offset of the Gause curve
      */
     protected final double gauseOffset = 1; // y offset of the curve
+
     private static double modifiedGauseFunction(double x) {
         double a = -Math.log(Math.PI / 100); // factor to streche curve in x direction
         double b = 1; // y offset of the curve
         return -Math.exp(-(x * x) * a) + b;
     }
 
-    private long timeOfLastLoop = -1;
+    private Timer loopTimeLimitedDotProduct = new Timer();
 
     /**
      * <b>Note</b>: This function should only be used with the modified gause
@@ -192,23 +206,16 @@ public abstract class SwerveModule implements Sendable {
      *         seconds
      */
     private double getLoopTime() {
-        /**
-         * default value because of the modifications on
-         * {@link #modifiedGauseFunction(double)}, with wich it will be used.
-         */
-        double elapsedTime = defaultLoopTime;
-
-        long timeOfThisLoop = System.currentTimeMillis();
-
-        if (timeOfLastLoop != -1)
-            elapsedTime = (timeOfThisLoop - timeOfLastLoop) / 1e3;
-
-        timeOfLastLoop = timeOfThisLoop;
-        return elapsedTime;
+        double time = defaultLoopTime;
+        if (loopTimeLimitedDotProduct.getLastStarted() != -1)
+            time = loopTimeLimitedDotProduct.getLastStarted();
+        loopTimeLimitedDotProduct.start();
+        return time;
     }
 
     public double getLimitedDotProduct(double velocity) {
-        return MathUtil.clamp(modifiedGauseFunction(velocity) * getLoopTime() / defaultLoopTime, -1.0, 1.0);
+        return MathUtil.clamp(modifiedGauseFunction(velocity) / (getLoopTime() / defaultLoopTime), -1.0, 1.0);
+        // return modifiedGauseFunction(velocity);
     }
 
     protected abstract Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation,

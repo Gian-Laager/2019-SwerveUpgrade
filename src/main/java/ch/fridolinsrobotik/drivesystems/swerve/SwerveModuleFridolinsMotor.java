@@ -144,6 +144,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
 
     @Override
     protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation, double velocity) {
+        moduleRotation.y *= driveInverted; // y of joystick is inverted
         Vector2d targetAfterdelay = calcTargetAfterdelay(moduleRotation, targetRotation, velocity);
         double velocityPercent = (velocity / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
         Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize()
