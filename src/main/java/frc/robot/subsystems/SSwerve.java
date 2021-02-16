@@ -7,6 +7,7 @@
 
 package frc.robot.subsystems;
 
+import ch.fridolinsrobotik.drivesystems.swerve.SwerveDrive;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.command.Subsystem;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
@@ -57,13 +58,13 @@ public class SSwerve extends Subsystem {
 	public void driveCartesian() {
 		switch(driveMode) {
 			case FieldOriented:
-				Robot.swerve.driveCartesian(driveX, driveY, rotationMagnitude, gyro);
+				Robot.swerve.driveCartesian(SwerveDrive.percentToMetersPerSecond(driveX), SwerveDrive.percentToMetersPerSecond(driveY), rotationMagnitude, gyro);
 			break;
 			case CargoOriented:
-				Robot.swerve.driveCartesian(driveX, driveY, rotationMagnitude, 0);
+				Robot.swerve.driveCartesian(SwerveDrive.percentToMetersPerSecond(driveX), SwerveDrive.percentToMetersPerSecond(driveY), rotationMagnitude, 0);
 			break;
 			case HatchOriented:
-				Robot.swerve.driveCartesian(driveX, driveY, rotationMagnitude, 180.0);
+				Robot.swerve.driveCartesian(SwerveDrive.percentToMetersPerSecond(driveX), SwerveDrive.percentToMetersPerSecond(driveY), rotationMagnitude, 180.0);
 			break;
 		}
 		

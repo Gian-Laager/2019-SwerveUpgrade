@@ -199,9 +199,9 @@ public class RobotMap {
       
       // TODO change Encodertick values for Swerve Drive
       /** one rotation around Y axis of the swerve (drive) in encoder pulses */
-      public static final int SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT = 11564;
+      public static final double SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT = 11564;
       /** One rotation around Z axis of the swerve (steering) in encoder pulses */
-      public static final int SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT = 196608;
+      public static final double SWERVE_STEER_ROTATION_ENCODER_TICK_COUNT = 196608;
       /** wheel to wheel distance in Y axis (cm) */
       public static final double WHEEL_DISTANCE_LENGTH = 64;
       /** wheel to wheel distance in x axis (cm) */

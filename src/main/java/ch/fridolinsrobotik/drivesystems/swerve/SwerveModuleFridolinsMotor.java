@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
-import frc.robot.Robot;
 import frc.robot.RobotMap;
 
 /**
@@ -29,12 +28,13 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     IFridolinsMotors steeringMotor;
 
     public SwerveModuleFridolinsMotor(Vector2d mountingPosition, IFridolinsMotors steeringMotor,
-            int steeringPulsesPerRotation, IFridolinsMotors drivingMotor, int drivingPulsesPerRotation) {
+            double steeringPulsesPerRotation, IFridolinsMotors drivingMotor, double drivingPulsesPerRotation) {
         super(new Translation2d(mountingPosition.x, mountingPosition.y), steeringPulsesPerRotation,
                 drivingPulsesPerRotation);
         verify(drivingMotor, steeringMotor);
         this.drivingMotor = drivingMotor;
         this.steeringMotor = steeringMotor;
+        super.wheelVector = Vector2d.fromPolar(getDriveAngleFromEncoder().getRadians(), getDriveSpeedVelocity());
         SendableRegistry.setName(this, "SwerveModuleFridolinsMotor", instances);
         SendableRegistry.addChild(this, drivingMotor);
         SendableRegistry.addChild(this, steeringMotor);
@@ -108,16 +108,16 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
 
     private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d moduleRotation,
             Vector2d actualTargetVector) {
-        if ((actualTargetVector.dot(moduleRotation) < solutions.first.dot(moduleRotation)
-                || solutions.first.dot(moduleRotation) < 0)
-                && (actualTargetVector.dot(moduleRotation) < solutions.second.dot(moduleRotation)
-                        || solutions.second.dot(moduleRotation) < 0))
-            return actualTargetVector;
-        if (solutions.first.dot(moduleRotation) > solutions.second.dot(moduleRotation)
-                || solutions.second.dot(moduleRotation) < 0)
-            return solutions.first;
+        Vector2d bestSoution;
+        if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector))
+            bestSoution = solutions.first;
         else
-            return solutions.second;
+            bestSoution = solutions.second;
+
+        if (moduleRotation.dot(actualTargetVector) > moduleRotation.dot(bestSoution))
+            bestSoution = actualTargetVector;
+
+        return bestSoution;
     }
 
     /**
@@ -133,7 +133,8 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     private Vector2d calcTargetAfterdelay(Vector2d moduleRotatoin, Vector2d targetRotation, double velocity) {
         Vector2d targetAfterdelay = targetRotation;
         if (calcTargetDelay.getLastStarted() != -1 && lastTargetVector != null) {
-            double deltaAngle = Math.acos(lastTargetVector.dot(targetRotation)) * calcTargetDelay.getLastStarted() / 1000;
+            double deltaAngle = Math.acos(lastTargetVector.dot(targetRotation)) * calcTargetDelay.getLastStarted()
+                    / 1000;
             deltaAngle *= getDelayOfSmothedCurve(velocity);
             targetAfterdelay = Vector2d.fromRad(deltaAngle);
         }
@@ -146,13 +147,16 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation, double velocity) {
         moduleRotation.y *= driveInverted; // y of joystick is inverted
         Vector2d targetAfterdelay = calcTargetAfterdelay(moduleRotation, targetRotation, velocity);
-        double velocityPercent = (velocity / SwerveDrive.maxSpeed45PercentOutput) * (1 / 0.45);
+        double velocityPercent = ((velocity / RobotMap.WHEEL_CIRCUMFERENCE) * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) / SwerveDrive.maxSpeed45PercentOutput * 0.45;
+        System.out.print(", Velocity percent: " + velocityPercent);
         Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize()
                 .inverseDot(getLimitedDotProduct(velocityPercent));
-        Vector2d limitedTargetVector = getBestSolutionOfInverseDotProduct(limitedTargetVectors, moduleRotation, targetRotation);
-        if (limitedTargetVector.dot(moduleRotation) > targetAfterdelay.dot(moduleRotation))
-            return limitedTargetVector;
-        return targetRotation;
+        Vector2d limitedTargetVector = getBestSolutionOfInverseDotProduct(limitedTargetVectors, moduleRotation,
+                targetRotation);
+//         if (limitedTargetVector.dot(moduleRotation) > targetAfterdelay.dot(moduleRotation))
+//             return limitedTargetVector;
+//         return targetRotation;
+        return limitedTargetVector;
     }
 
     @Override

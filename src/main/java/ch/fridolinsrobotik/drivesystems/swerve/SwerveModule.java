@@ -9,6 +9,8 @@ package ch.fridolinsrobotik.drivesystems.swerve;
 
 import edu.wpi.first.wpilibj.Sendable;
 
+import java.util.Vector;
+
 import org.opencv.core.Algorithm;
 
 import ch.fridolinsrobotik.utilities.Timer;
@@ -42,15 +44,16 @@ public abstract class SwerveModule implements Sendable {
 
     // private final SendableImpl m_sendableImpl;
 
-    protected int steeringPulsesPerRotation = 1;
-    protected int drivingPulsesPerRotation = 1;
+    protected double steeringPulsesPerRotation = 1;
+    protected double drivingPulsesPerRotation = 1;
     protected Translation2d mountingPoint = new Translation2d(0, 0);
     protected Translation2d naturalRotateVector = new Translation2d(0, 0);
     protected double driveSpeed = 0;
     protected double driveInverted = 1.0;
     protected int steeringPosition = 0;
 
-    public SwerveModule(Translation2d mountingPoint, int steeringPulsesPerRotation, int drivingPulsesPerRotation) {
+    public SwerveModule(Translation2d mountingPoint, double steeringPulsesPerRotation,
+            double drivingPulsesPerRotation) {
         SendableRegistry.addLW(this, "SwerveModule");
         // SendableRegistry.setName(this, "SwerveModule");
         verify(mountingPoint, steeringPulsesPerRotation, drivingPulsesPerRotation);
@@ -71,7 +74,8 @@ public abstract class SwerveModule implements Sendable {
      * @throws IllegalArgumentException if the mounting point is the origin or if
      *                                  any PPR is 0
      */
-    private void verify(Translation2d mountingPoint, int steeringPulsesPerRotation, int drivingPulsesPerRotation) {
+    private void verify(Translation2d mountingPoint, double steeringPulsesPerRotation,
+            double drivingPulsesPerRotation) {
         if (mountingPoint != null && mountingPoint.getNorm() != 0 && steeringPulsesPerRotation != 0
                 && drivingPulsesPerRotation != 0) {
             return;
@@ -105,8 +109,44 @@ public abstract class SwerveModule implements Sendable {
         }
     }
 
-    protected Vector2d wheelVector = new Vector2d();
+    public static enum RotationDirection {
+        Clockwise, CounterClockwise
+    }
+
+    public RotationDirection getRotationDirection() {
+        if (convertEncoderPulsesToRadians(getSteeringPosition(), getSteeringPulsesPerRotation())
+                - getSteeringAngle() > 0)
+            return RotationDirection.CounterClockwise;
+        return RotationDirection.Clockwise;
+    }
+
+    public void invertRotationDirection() {
+        double diriveDirection = -1;
+        setDriveSpeedVelocity(getDriveSpeedVelocity() * diriveDirection);
+
+        double invertedAngle = ((Math.PI * 2) - getAngleToSteer()) % (Math.PI * 2);
+        double steeringDirection = Math.signum(Vector2d.fromRad(getSteeringAngle()).cross(targetVector));
+        invertedAngle *= steeringDirection;
+        setSteeringPosition((int) getSteeringEncoderPulses()
+                + convertRadiansToEncoderPulses(invertedAngle, getSteeringPulsesPerRotation()));
+    }
+
+    /**
+     * @return The target vector wich the module trys to achive, lenght equals
+     *         module speed in m/s
+     */
+    public Vector2d getTargetVector() {
+        return Vector2d.fromPolar(angleToSteer, getDriveSpeedVelocity());
+    }
+
+    public double getAngleToSteer() {
+        return angleToSteer;
+    }
+
+    protected Vector2d wheelVector;
     protected Vector2d lastTargetVector = null;
+    private double angleToSteer = 0.0;
+    private Vector2d targetVector = new Vector2d();
 
     /**
      * Drive calculation method for Serve platform.
@@ -122,10 +162,10 @@ public abstract class SwerveModule implements Sendable {
      * @param zRotation The robot's rotation rate around the Z axis [-1.0..1.0].
      *                  Clockwise is positive.
      */
-    protected void calculateSwerveMovement(double speedPercent, Rotation2d angle) {
-        wheelVector = Vector2d.fromPolar(getSteeringAngle(), speedPercent);
-        Vector2d normalizedWheelVecotr = wheelVector.normalize();
-        Vector2d targetVector = Vector2d.fromRad(angle.getRadians());
+    protected void calculateSwerveMovement(double speedMetersPerSecond, Rotation2d angle) {
+        wheelVector = Vector2d.fromPolar(getSteeringAngle(), speedMetersPerSecond);
+        Vector2d normalizedWheelVecotr = Vector2d.fromRad(getSteeringAngle());
+        targetVector = Vector2d.fromRad(angle.getRadians());
         // System.out.println(String.format(
         // "Limited dot product: %f, velocity: %f, actual target vector: %s, limited
         // target vector: %s, wheel vector: %s",
@@ -135,21 +175,19 @@ public abstract class SwerveModule implements Sendable {
         // speedMeterPerSecond).toString(),
         // wheelVector.toString()));
         System.out.print("Actual target vector: " + targetVector.toString());
-        double time = defaultLoopTime;
-        if (loopTimeLimitedDotProduct.getLastStarted() != -1)
-            time = loopTimeLimitedDotProduct.getLastStarted();
-        targetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector, speedPercent);
-        System.out.println(
-                String.format(", limited target vector: %s, wheel vector: %s, limited dot product: %f, velocity: %f",
-                        targetVector.toString(), normalizedWheelVecotr.toString(),
-                        MathUtil.clamp(modifiedGauseFunction(speedPercent) / (time / defaultLoopTime), -1.0, 1.0),
-                        speedPercent));
+
+        Vector2d limitedTargetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
+                speedMetersPerSecond);
+        if (lastTargetVector != null)
+            System.out.print(String.format(", limited target vector: %s, wheel vector: %s, velocity: %f",
+                    targetVector.toString(), normalizedWheelVecotr.toString(),
+                    limitedTargetVector.dot(lastTargetVector), getDriveVelocityFromEncoder()));
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
          * magnitude is needed, since the wheel vector's magnitude is always 1.
          */
-        double angleToSteer = Math.acos(targetVector.dot(normalizedWheelVecotr));
+        angleToSteer = Math.acos(limitedTargetVector.dot(normalizedWheelVecotr));
         double steeringDirection = Math.signum(normalizedWheelVecotr.cross(targetVector));
 
         double driveDirection;
@@ -165,8 +203,9 @@ public abstract class SwerveModule implements Sendable {
 
         setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
-        setDriveSpeedVelocity(driveDirection * driveInverted * speedPercent);
-        lastTargetVector = targetVector;
+        System.out.println(", target angle: " + Math.toDegrees(getSteeringAngle()) % 360.0);
+        setDriveSpeedVelocity(driveDirection * driveInverted * speedMetersPerSecond);
+        lastTargetVector = limitedTargetVector;
     }
 
     /**
@@ -182,17 +221,15 @@ public abstract class SwerveModule implements Sendable {
     /**
      * factor to streche Gause curve in x direction
      */
-    protected final double gauseFactor = -Math.log(Math.PI / 100); // factor to streche curve in x direction
+    protected static final double gauseFactor = -Math.log(Math.PI / 100);
 
     /**
      * y offset of the Gause curve
      */
-    protected final double gauseOffset = 1; // y offset of the curve
+    protected static final double gauseOffset = 1;
 
     private static double modifiedGauseFunction(double x) {
-        double a = -Math.log(Math.PI / 100); // factor to streche curve in x direction
-        double b = 1; // y offset of the curve
-        return -Math.exp(-(x * x) * a) + b;
+        return -Math.exp(-(x * x) * gauseFactor) + gauseOffset;
     }
 
     private Timer loopTimeLimitedDotProduct = new Timer();
@@ -214,7 +251,12 @@ public abstract class SwerveModule implements Sendable {
     }
 
     public double getLimitedDotProduct(double velocity) {
-        return MathUtil.clamp(modifiedGauseFunction(velocity) / (getLoopTime() / defaultLoopTime), -1.0, 1.0);
+        double result = MathUtil.clamp(modifiedGauseFunction(velocity)/* / (getLoopTime() / defaultLoopTime) */, -1.0,
+                1.0);
+        System.out.print(", limited dot product: " + result);
+        return result;
+        // return MathUtil.clamp(modifiedGauseFunction(velocity) / (getLoopTime() /
+        // defaultLoopTime), -1.0, 1.0);
         // return modifiedGauseFunction(velocity);
     }
 
@@ -242,6 +284,10 @@ public abstract class SwerveModule implements Sendable {
      * @return True when the homing sensor is active.
      */
     public abstract boolean homingSensorActive();
+
+    public Vector2d getTargetRotation() {
+        return targetVector;
+    }
 
     /**
      * Sets the steering motor to velocity control mode instead of position control
@@ -298,7 +344,7 @@ public abstract class SwerveModule implements Sendable {
      * @return Pulses per rotation of the wheel for a full turn around the wheel's
      *         Z-axis
      */
-    public int getSteeringPulsesPerRotation() {
+    public double getSteeringPulsesPerRotation() {
         return this.steeringPulsesPerRotation;
     }
 
@@ -306,7 +352,7 @@ public abstract class SwerveModule implements Sendable {
      * @return Pulses per rotation of the wheel for a full turn around the wheel's
      *         Z-axis
      */
-    public int getDrivingPulsesPerRotation() {
+    public double getDrivingPulsesPerRotation() {
         return this.drivingPulsesPerRotation;
     }
 
@@ -375,7 +421,7 @@ public abstract class SwerveModule implements Sendable {
         return (2 * Math.PI) / pulsesPerRotation * pulses;
     }
 
-    protected int convertRadiansToEncoderPulses(double radians, int pulsesPerRotation) {
+    protected int convertRadiansToEncoderPulses(double radians, double pulsesPerRotation) {
         return (int) (pulsesPerRotation / (2 * Math.PI) * radians);
     }
 
