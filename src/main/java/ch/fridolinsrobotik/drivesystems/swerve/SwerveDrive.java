@@ -294,7 +294,7 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         if (SwerveModule.driveMetersPerSecond_to_EncoderTicksPerSecond(maxMagnitude) > maxSpeed45PercentOutput) {
             for (int i = 0; i < this.swerveModules.length; i++) {
                 SwerveModule module = this.swerveModules[i];
-                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * 0.45);
+                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) * RobotMap.WHEEL_CIRCUMFERENCE);
             }
         }
     }

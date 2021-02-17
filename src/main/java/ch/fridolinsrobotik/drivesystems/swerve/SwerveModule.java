@@ -174,7 +174,7 @@ public abstract class SwerveModule implements Sendable {
         // getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
         // speedMeterPerSecond).toString(),
         // wheelVector.toString()));
-        System.out.print("Actual target vector: " + targetVector.toString());
+        System.out.print(SendableRegistry.getName(this) + "Actual target vector: " + targetVector.toString());
 
         Vector2d limitedTargetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
                 getDriveSpeedVelocity());

@@ -106,15 +106,17 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         return drivingMotor.getEncoderTicks();
     }
 
-    private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d moduleRotation,
+    private Vector2d getBestSolutionOfInverseDotProduct(Pair<Vector2d, Vector2d> solutions, Vector2d moduleRotation_,
             Vector2d actualTargetVector) {
         Vector2d bestSoution;
-        if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector))
+        Vector2d moduleRotation = moduleRotation_.clone();
+        moduleRotation.y *= driveInverted;
+        if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector) ^ moduleRotation.dot(moduleRotation) < 0.0)
             bestSoution = solutions.first;
         else
             bestSoution = solutions.second;
 
-        if (moduleRotation.dot(actualTargetVector) > moduleRotation.dot(bestSoution))
+        if (Math.abs(moduleRotation.dot(actualTargetVector)) > moduleRotation.dot(bestSoution))
             bestSoution = actualTargetVector;
 
         return bestSoution;
