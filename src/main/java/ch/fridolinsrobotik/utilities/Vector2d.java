@@ -1,6 +1,6 @@
 package ch.fridolinsrobotik.utilities;
 
-public class Vector2d extends edu.wpi.first.wpilibj.drive.Vector2d {
+public class Vector2d extends edu.wpi.first.wpilibj.drive.Vector2d implements Cloneable {
     public Vector2d() {
         super();
     }
@@ -131,5 +131,10 @@ public class Vector2d extends edu.wpi.first.wpilibj.drive.Vector2d {
      */
     public String toString() {
         return String.format("Vector2d: [%f, %f]", x, y);
+    }
+
+    @Override
+    public Vector2d clone() {
+        return new Vector2d(x, y);
     }
 }

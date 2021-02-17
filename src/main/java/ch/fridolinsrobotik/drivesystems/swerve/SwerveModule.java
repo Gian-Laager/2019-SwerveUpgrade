@@ -177,10 +177,10 @@ public abstract class SwerveModule implements Sendable {
         System.out.print("Actual target vector: " + targetVector.toString());
 
         Vector2d limitedTargetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
-                speedMetersPerSecond);
+                getDriveSpeedVelocity());
         if (lastTargetVector != null)
             System.out.print(String.format(", limited target vector: %s, wheel vector: %s, velocity: %f",
-                    targetVector.toString(), normalizedWheelVecotr.toString(),
+                    limitedTargetVector.toString(), normalizedWheelVecotr.toString(),
                     limitedTargetVector.dot(lastTargetVector), getDriveVelocityFromEncoder()));
 
         /*
@@ -221,7 +221,7 @@ public abstract class SwerveModule implements Sendable {
     /**
      * factor to streche Gause curve in x direction
      */
-    protected static final double gauseFactor = -Math.log(Math.PI / 100);
+    protected static final double gauseFactor = -Math.log(Math.PI / 4.59678e8);
 
     /**
      * y offset of the Gause curve
