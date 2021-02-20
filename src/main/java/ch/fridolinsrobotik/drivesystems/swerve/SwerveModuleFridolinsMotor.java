@@ -11,6 +11,7 @@ import java.util.StringJoiner;
 
 import ch.fridolinsrobotik.motorcontrollers.IFridolinsMotors;
 import ch.fridolinsrobotik.utilities.Pair;
+import ch.fridolinsrobotik.utilities.CSVLogger;
 import ch.fridolinsrobotik.utilities.Timer;
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
@@ -39,6 +40,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         SendableRegistry.addChild(this, drivingMotor);
         SendableRegistry.addChild(this, steeringMotor);
         instances++;
+        csvLogger = new CSVLogger("/tmp/" + SendableRegistry.getName(this).replace("[", "_").replace("]", "") + ".csv");
     }
 
     /**
@@ -111,7 +113,9 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         Vector2d bestSoution;
         Vector2d moduleRotation = moduleRotation_.clone();
         moduleRotation.y *= driveInverted;
-        if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector) ^ moduleRotation.dot(moduleRotation) < 0.0)
+        csvLogger.put("Dot product of actual target vector and module rotation", moduleRotation.dot(actualTargetVector));
+        if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector)
+                ^ moduleRotation.dot(actualTargetVector) < 0.0)
             bestSoution = solutions.first;
         else
             bestSoution = solutions.second;
@@ -146,17 +150,24 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
     }
 
     @Override
-    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation, Vector2d targetRotation, double velocity) {
-//         Vector2d targetAfterdelay = calcTargetAfterdelay(moduleRotation, targetRotation, velocity);
-        double velocityPercent = ((velocity / RobotMap.WHEEL_CIRCUMFERENCE) * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) / SwerveDrive.maxSpeed45PercentOutput * 0.45;
+    protected Vector2d getLimitedSteeringVector(Vector2d moduleRotation_, Vector2d targetRotation, double velocity) {
+        // Vector2d targetAfterdelay = calcTargetAfterdelay(moduleRotation,
+        // targetRotation, velocity);
+        Vector2d moduleRotation = moduleRotation_.clone();
+        if (Math.signum(moduleRotation.dot(targetRotation)) < 0.0)
+            moduleRotation.rotate(180);
+        double velocityPercent = ((velocity / RobotMap.WHEEL_CIRCUMFERENCE)
+                * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) / SwerveDrive.maxSpeed45PercentOutput * 0.45;
         System.out.print(", Velocity percent: " + velocityPercent);
+        csvLogger.put("Velocity percent", velocityPercent);
         Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize()
                 .inverseDot(getLimitedDotProduct(velocityPercent));
         Vector2d limitedTargetVector = getBestSolutionOfInverseDotProduct(limitedTargetVectors, moduleRotation,
                 targetRotation);
-//         if (limitedTargetVector.dot(moduleRotation) > targetAfterdelay.dot(moduleRotation))
-//             return limitedTargetVector;
-//         return targetRotation;
+        // if (limitedTargetVector.dot(moduleRotation) >
+        // targetAfterdelay.dot(moduleRotation))
+        // return limitedTargetVector;
+        // return targetRotation;
         return limitedTargetVector;
     }
 

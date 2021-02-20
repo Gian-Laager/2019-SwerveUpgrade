@@ -45,7 +45,7 @@ import frc.robot.RobotMap;
  */
 public class SwerveDrive extends MotorSafety implements Sendable {
     SwerveDriveKinematics kinematics;
-    SwerveModule[] swerveModules;
+    public SwerveModule[] swerveModules;
 
     public static final double kDefaultDeadband = 0.04;
     public static final double kDefaultSpeedFactor = 1.0;

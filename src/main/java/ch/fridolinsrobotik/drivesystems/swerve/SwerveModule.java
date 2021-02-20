@@ -7,12 +7,21 @@
 
 package ch.fridolinsrobotik.drivesystems.swerve;
 
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Sendable;
 
+import java.io.FileWriter;
+import java.io.IOError;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Vector;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.opencv.core.Algorithm;
 
+import ch.fridolinsrobotik.utilities.CSVLogger;
 import ch.fridolinsrobotik.utilities.Timer;
 import ch.fridolinsrobotik.utilities.Vector2d;
 import edu.wpi.first.wpilibj.geometry.Rotation2d;
@@ -20,6 +29,7 @@ import edu.wpi.first.wpilibj.geometry.Translation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 import edu.wpi.first.wpilibj.smartdashboard.SendableRegistry;
 import edu.wpi.first.wpiutil.math.MathUtil;
+import frc.robot.OI;
 import frc.robot.Robot;
 import frc.robot.RobotMap;
 
@@ -147,6 +157,8 @@ public abstract class SwerveModule implements Sendable {
     protected Vector2d lastTargetVector = null;
     private double angleToSteer = 0.0;
     private Vector2d targetVector = new Vector2d();
+    protected double steeringDirection = 1.0;
+    public CSVLogger csvLogger;
 
     /**
      * Drive calculation method for Serve platform.
@@ -174,7 +186,16 @@ public abstract class SwerveModule implements Sendable {
         // getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
         // speedMeterPerSecond).toString(),
         // wheelVector.toString()));
+
         System.out.print(SendableRegistry.getName(this) + "Actual target vector: " + targetVector.toString());
+        Vector2d joystickVector = new Vector2d(OI.JoystickMainDriver.getX(), OI.JoystickMainDriver.getY());
+        double magnitude = joystickVector.magnitude();
+        if (magnitude > 0)
+            joystickVector = joystickVector.normalize().mult(magnitude);
+        csvLogger.put("Joystick x", joystickVector.x);
+        csvLogger.put("Joystick y", joystickVector.y);
+        csvLogger.put("Actual target vector x", targetVector.x);
+        csvLogger.put("Actual target vector y", targetVector.y);
 
         Vector2d limitedTargetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
                 getDriveSpeedVelocity());
@@ -182,13 +203,18 @@ public abstract class SwerveModule implements Sendable {
             System.out.print(String.format(", limited target vector: %s, wheel vector: %s, velocity: %f",
                     limitedTargetVector.toString(), normalizedWheelVecotr.toString(),
                     limitedTargetVector.dot(lastTargetVector), getDriveVelocityFromEncoder()));
+        csvLogger.put("Limited target vector x", limitedTargetVector.x);
+        csvLogger.put("Limited target vector y", limitedTargetVector.y);
+        csvLogger.put("Wheel vector x", normalizedWheelVecotr.x);
+        csvLogger.put("Wheel vector y", normalizedWheelVecotr.y);
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
          * magnitude is needed, since the wheel vector's magnitude is always 1.
          */
         angleToSteer = Math.acos(limitedTargetVector.dot(normalizedWheelVecotr));
-        double steeringDirection = Math.signum(normalizedWheelVecotr.cross(targetVector));
+        steeringDirection = Math.signum(normalizedWheelVecotr.cross(targetVector));
+        csvLogger.put("Steering direction", steeringDirection);
 
         double driveDirection;
         /* if steering angle is bigger than 90' the opposite side (-180') is faster */
@@ -254,6 +280,7 @@ public abstract class SwerveModule implements Sendable {
         double result = MathUtil.clamp(modifiedGauseFunction(velocity)/* / (getLoopTime() / defaultLoopTime) */, -1.0,
                 1.0);
         System.out.print(", limited dot product: " + result);
+        csvLogger.put("Limited dot product", result);
         return result;
         // return MathUtil.clamp(modifiedGauseFunction(velocity) / (getLoopTime() /
         // defaultLoopTime), -1.0, 1.0);
