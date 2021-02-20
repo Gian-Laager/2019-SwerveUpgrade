@@ -133,10 +133,12 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void disabledInit() {
-        for (SwerveModule module : swerve.swerveModules) {
-            module.csvLogger.writeToFile();
-            module.csvLogger.close();
-        }
+//         for (SwerveModule module : swerve.swerveModules) {
+//             module.csvLogger.writeToFile();
+//             module.csvLogger.close();
+//         }
+        swerve.csvLogger.writeToFile();
+        swerve.csvLogger.close();
     }
 
     @Override
@@ -176,8 +178,9 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
-        for (SwerveModule module : swerve.swerveModules)
-            module.csvLogger.open();
+//         for (SwerveModule module : swerve.swerveModules)
+//             module.csvLogger.open();
+        swerve.csvLogger.open();
         if (RobotMap.LIFTING_UNIT_SUBSYSTEM_IS_IN_USE) {
             liftingUnit.enableAutonomous(true);
             cart.enableAutonomous(true);

@@ -7,6 +7,7 @@ import java.util.*;
 import edu.wpi.first.wpilibj.DriverStation;
 
 public class CSVLogger implements AutoCloseable {
+    private static final long limitedSize = 3000; // maximum elements in a column
     private HashMap<String, List<String>> data;
     private HashMap<String, Integer> headerIndices = new HashMap<>();
     private FileWriter csvFile;
@@ -28,74 +29,63 @@ public class CSVLogger implements AutoCloseable {
         open();
     }
 
-    public void put(String header, String... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
+    private void putString(String header, String data) {
+        if (this.data.get(header).size() >= limitedSize) {
+            this.data.get(header).remove(0);
+            for (int i = 0; i < this.data.get(header).size() -1; i++)
+                this.data.get(header).set(i, this.data.get(header).get(i + 1));
         }
+        this.data.get(header).add(data);
+    }
+
+    public void put(String header, String... data) {
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(d);
+            putString(header, d);
     }
 
     public void put(String header, double... data) {
+        addHeaderIfNeseccary(header);
+        for (var d : data)
+            putString(header, Double.toString(d));
+    }
+
+    private void addHeaderIfNeseccary(String header) {
         if (!this.data.containsKey(header)) {
             headerIndices.put(header, indexOfNewHeader);
             this.data.put(header, new ArrayList<>());
             indexOfNewHeader++;
         }
-        for (var d : data)
-            this.data.get(header).add(Double.toString(d));
     }
 
     public void put(String header, float... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
-        }
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(Float.toString(d));
+            putString(header, Float.toString(d));
     }
 
     public void put(String header, int... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
-        }
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(Integer.toString(d));
+            putString(header, Integer.toString(d));
     }
 
     public void put(String header, short... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
-        }
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(Short.toString(d));
+            putString(header, Short.toString(d));
     }
 
     public void put(String header, byte... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
-        }
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(String.format("%02x", d));
+            putString(header, String.format("%02x", d));
     }
 
     public void put(String header, boolean... data) {
-        if (!this.data.containsKey(header)) {
-            headerIndices.put(header, indexOfNewHeader);
-            this.data.put(header, new ArrayList<>());
-            indexOfNewHeader++;
-        }
+        addHeaderIfNeseccary(header);
         for (var d : data)
-            this.data.get(header).add(Boolean.toString(d));
+            putString(header, Boolean.toString(d));
     }
 
     private static int max(Integer[] numbers) {

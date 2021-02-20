@@ -40,7 +40,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         SendableRegistry.addChild(this, drivingMotor);
         SendableRegistry.addChild(this, steeringMotor);
         instances++;
-        csvLogger = new CSVLogger("/tmp/" + SendableRegistry.getName(this).replace("[", "_").replace("]", "") + ".csv");
+//         csvLogger = new CSVLogger("/tmp/" + SendableRegistry.getName(this).replace("[", "_").replace("]", "") + ".csv");
     }
 
     /**
@@ -113,7 +113,6 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
         Vector2d bestSoution;
         Vector2d moduleRotation = moduleRotation_.clone();
         moduleRotation.y *= driveInverted;
-        csvLogger.put("Dot product of actual target vector and module rotation", moduleRotation.dot(actualTargetVector));
         if (solutions.first.dot(actualTargetVector) > solutions.second.dot(actualTargetVector)
                 ^ moduleRotation.dot(actualTargetVector) < 0.0)
             bestSoution = solutions.first;
@@ -158,8 +157,7 @@ public class SwerveModuleFridolinsMotor extends SwerveModule {
             moduleRotation.rotate(180);
         double velocityPercent = ((velocity / RobotMap.WHEEL_CIRCUMFERENCE)
                 * RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) / SwerveDrive.maxSpeed45PercentOutput * 0.45;
-        System.out.print(", Velocity percent: " + velocityPercent);
-        csvLogger.put("Velocity percent", velocityPercent);
+//         csvLogger.put("Velocity percent", velocityPercent);
         Pair<Vector2d, Vector2d> limitedTargetVectors = moduleRotation.normalize()
                 .inverseDot(getLimitedDotProduct(velocityPercent));
         Vector2d limitedTargetVector = getBestSolutionOfInverseDotProduct(limitedTargetVectors, moduleRotation,

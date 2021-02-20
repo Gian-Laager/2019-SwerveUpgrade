@@ -9,7 +9,9 @@ package ch.fridolinsrobotik.drivesystems.swerve;
 
 import java.util.Arrays;
 
+import ch.fridolinsrobotik.drivesystems.swerve.SwerveModule.RotationDirection;
 import ch.fridolinsrobotik.utilities.Algorithms;
+import ch.fridolinsrobotik.utilities.CSVLogger;
 import edu.wpi.first.wpilibj.MotorSafety;
 import edu.wpi.first.wpilibj.Sendable;
 import ch.fridolinsrobotik.utilities.Vector2d;
@@ -202,17 +204,23 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         }
         feed();
     }
-
+    
+    public CSVLogger csvLogger = new CSVLogger("/tmp/SwerveDriveCommonRotation.csv");
+    
     private SwerveModule.RotationDirection getCommonRotationDirection() {
         SwerveModule.RotationDirection[] rotatoinDirections = Arrays.stream(swerveModules)
                 .map(SwerveModule::getRotationDirection).toArray(SwerveModule.RotationDirection[]::new);
         int clockwiseCount = 0;
         int counterClockwiseCount = 0;
-        for (var rotationDirection : rotatoinDirections)
+        int i = 0;
+        for (var rotationDirection : rotatoinDirections) {
             if (rotationDirection == SwerveModule.RotationDirection.Clockwise)
                 clockwiseCount++;
             else if (rotationDirection == SwerveModule.RotationDirection.CounterClockwise)
                 counterClockwiseCount++;
+            csvLogger.put("Swerve module " + i + " rotation", rotationDirection == RotationDirection.Clockwise ? 1 : -1);
+            i++;
+        }
         if (clockwiseCount > counterClockwiseCount)
             return SwerveModule.RotationDirection.Clockwise;
         return SwerveModule.RotationDirection.CounterClockwise;
@@ -224,8 +232,6 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         for (int i = 0; i < moduleStates.length; ++i) {
             SwerveModule module = this.swerveModules[i];
             SwerveModuleState moduleState = moduleStates[i];
-            // System.out.println("I: "+ i + " " + moduleState.toString() + " Strive vector:
-            // " + striveVector.toString());
 
             if (Math.abs(zRotation) > 0 || Math.hypot(striveVector.getX(), striveVector.getY()) > 0) {
                 module.calculateSwerveMovement(moduleState.speedMetersPerSecond, moduleState.angle);
@@ -251,12 +257,25 @@ public class SwerveDrive extends MotorSafety implements Sendable {
             } else
                 module.setDriveSpeedVelocity(0.0);
         }
-        // SwerveModule.RotationDirection commonRotationDirection =
-        // getCommonRotationDirection();
-        // for (SwerveModule module : swerveModules)
-        // if (module.getRotationDirection() != commonRotationDirection)
-        // module.invertRotationDirection();
+        SwerveModule.RotationDirection commonRotationDirection = getCommonRotationDirection();
+        csvLogger.put("Common rotation", commonRotationDirection == RotationDirection.Clockwise ? 1 : -1);
+        for (var module : swerveModules) {
+            csvLogger.put(SendableRegistry.getName(module) + ": Target vector befor invertion x", module.getTargetVector().x);
+            csvLogger.put(SendableRegistry.getName(module) + ": Target vector befor invertion y", module.getTargetVector().y);
+        }
+        for (var module : swerveModules)
+            csvLogger.put(SendableRegistry.getName(module) + ": Drive direction before invertion", module.getDriveDirection());
+        for (SwerveModule module : swerveModules) 
+            if (module.getRotationDirection() != commonRotationDirection)
+                module.invertRotationDirection();
+        
 
+        for (var module : swerveModules)
+            csvLogger.put(SendableRegistry.getName(module) + ": Drive direction after invertion", module.getDriveDirection());
+        for (var module : swerveModules) {
+            csvLogger.put(SendableRegistry.getName(module) + ": Target vector after invertion x", module.getTargetVector().x);
+            csvLogger.put(SendableRegistry.getName(module) + ": Target vector after invertion y", module.getTargetVector().y);
+        }
     }
 
     /**
@@ -294,7 +313,9 @@ public class SwerveDrive extends MotorSafety implements Sendable {
         if (SwerveModule.driveMetersPerSecond_to_EncoderTicksPerSecond(maxMagnitude) > maxSpeed45PercentOutput) {
             for (int i = 0; i < this.swerveModules.length; i++) {
                 SwerveModule module = this.swerveModules[i];
-                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude) * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT) * RobotMap.WHEEL_CIRCUMFERENCE);
+                module.setDriveSpeedVelocity((module.getDriveSpeedVelocity() / maxMagnitude)
+                        * (maxSpeed45PercentOutput / RobotMap.SWERVE_DRIVE_ROTATION_ENCODER_TICK_COUNT)
+                        * RobotMap.WHEEL_CIRCUMFERENCE);
             }
         }
     }

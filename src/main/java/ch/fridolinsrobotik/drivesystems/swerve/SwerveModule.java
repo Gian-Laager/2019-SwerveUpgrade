@@ -124,19 +124,20 @@ public abstract class SwerveModule implements Sendable {
     }
 
     public RotationDirection getRotationDirection() {
-        if (convertEncoderPulsesToRadians(getSteeringPosition(), getSteeringPulsesPerRotation())
-                - getSteeringAngle() > 0)
-            return RotationDirection.CounterClockwise;
+        if (lastTargetVector != null)
+            if (convertEncoderPulsesToRadians(getSteeringPosition(), getSteeringPulsesPerRotation())
+                    - Math.atan(lastTargetVector.y / lastTargetVector.x) > 0)
+                return RotationDirection.CounterClockwise;
+        else
+            if (convertEncoderPulsesToRadians(getSteeringPosition(), getSteeringPulsesPerRotation())
+                    - getSteeringAngle() > 0)
+                return RotationDirection.CounterClockwise;
         return RotationDirection.Clockwise;
     }
 
     public void invertRotationDirection() {
-        double diriveDirection = -1;
-        setDriveSpeedVelocity(getDriveSpeedVelocity() * diriveDirection);
-
-        double invertedAngle = ((Math.PI * 2) - getAngleToSteer()) % (Math.PI * 2);
-        double steeringDirection = Math.signum(Vector2d.fromRad(getSteeringAngle()).cross(targetVector));
-        invertedAngle *= steeringDirection;
+        double invertedAngle = -getSteeringAngle();
+        targetVector = Vector2d.fromRad(invertedAngle);
         setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(invertedAngle, getSteeringPulsesPerRotation()));
     }
@@ -158,7 +159,12 @@ public abstract class SwerveModule implements Sendable {
     private double angleToSteer = 0.0;
     private Vector2d targetVector = new Vector2d();
     protected double steeringDirection = 1.0;
-    public CSVLogger csvLogger;
+    public double driveDirection = 1.0;
+
+    public double getDriveDirection() {
+        return driveDirection;
+    }
+    // public CSVLogger csvLogger;
 
     /**
      * Drive calculation method for Serve platform.
@@ -192,10 +198,10 @@ public abstract class SwerveModule implements Sendable {
         double magnitude = joystickVector.magnitude();
         if (magnitude > 0)
             joystickVector = joystickVector.normalize().mult(magnitude);
-        csvLogger.put("Joystick x", joystickVector.x);
-        csvLogger.put("Joystick y", joystickVector.y);
-        csvLogger.put("Actual target vector x", targetVector.x);
-        csvLogger.put("Actual target vector y", targetVector.y);
+        // csvLogger.put("Joystick x", joystickVector.x);
+        // csvLogger.put("Joystick y", joystickVector.y);
+        // csvLogger.put("Actual target vector x", targetVector.x);
+        // csvLogger.put("Actual target vector y", targetVector.y);
 
         Vector2d limitedTargetVector = getLimitedSteeringVector(normalizedWheelVecotr, targetVector,
                 getDriveSpeedVelocity());
@@ -203,10 +209,10 @@ public abstract class SwerveModule implements Sendable {
             System.out.print(String.format(", limited target vector: %s, wheel vector: %s, velocity: %f",
                     limitedTargetVector.toString(), normalizedWheelVecotr.toString(),
                     limitedTargetVector.dot(lastTargetVector), getDriveVelocityFromEncoder()));
-        csvLogger.put("Limited target vector x", limitedTargetVector.x);
-        csvLogger.put("Limited target vector y", limitedTargetVector.y);
-        csvLogger.put("Wheel vector x", normalizedWheelVecotr.x);
-        csvLogger.put("Wheel vector y", normalizedWheelVecotr.y);
+        // csvLogger.put("Limited target vector x", limitedTargetVector.x);
+        // csvLogger.put("Limited target vector y", limitedTargetVector.y);
+        // csvLogger.put("Wheel vector x", normalizedWheelVecotr.x);
+        // csvLogger.put("Wheel vector y", normalizedWheelVecotr.y);
 
         /*
          * Angle between wheel vector and target vector. Only the target vector's
@@ -214,9 +220,8 @@ public abstract class SwerveModule implements Sendable {
          */
         angleToSteer = Math.acos(limitedTargetVector.dot(normalizedWheelVecotr));
         steeringDirection = Math.signum(normalizedWheelVecotr.cross(targetVector));
-        csvLogger.put("Steering direction", steeringDirection);
+        // csvLogger.put("Steering direction", steeringDirection);
 
-        double driveDirection;
         /* if steering angle is bigger than 90' the opposite side (-180') is faster */
         if (angleToSteer > Math.PI / 2) {
             angleToSteer -= Math.PI;
@@ -229,7 +234,6 @@ public abstract class SwerveModule implements Sendable {
 
         setSteeringPosition((int) getSteeringEncoderPulses()
                 + convertRadiansToEncoderPulses(angleToSteer, getSteeringPulsesPerRotation()));
-        System.out.println(", target angle: " + Math.toDegrees(getSteeringAngle()) % 360.0);
         setDriveSpeedVelocity(driveDirection * driveInverted * speedMetersPerSecond);
         lastTargetVector = limitedTargetVector;
     }
@@ -279,8 +283,8 @@ public abstract class SwerveModule implements Sendable {
     public double getLimitedDotProduct(double velocity) {
         double result = MathUtil.clamp(modifiedGauseFunction(velocity)/* / (getLoopTime() / defaultLoopTime) */, -1.0,
                 1.0);
-        System.out.print(", limited dot product: " + result);
-        csvLogger.put("Limited dot product", result);
+        // System.out.print(", limited dot product: " + result);
+        // csvLogger.put("Limited dot product", result);
         return result;
         // return MathUtil.clamp(modifiedGauseFunction(velocity) / (getLoopTime() /
         // defaultLoopTime), -1.0, 1.0);
@@ -460,7 +464,6 @@ public abstract class SwerveModule implements Sendable {
 
     @Override
     public void initSendable(SendableBuilder builder) {
-        System.out.println("SwerveModule InitSendable called");
         builder.setSmartDashboardType("SwerveModule");
         builder.setSafeState(this::stopMotors);
         builder.addDoubleProperty("Steering Angle", () -> Math.toDegrees(this.getSteeringAngle()), null);
